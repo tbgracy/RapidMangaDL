@@ -1,0 +1,205 @@
+import os
+import json
+import logging
+from multiprocessing import Manager
+import hashlib
+import aiofiles
+from alive_progress import alive_bar
+import requests
+from fake_headers import Headers
+import time
+from .utils import create_failure_image, compress_file_path, get_file_name, jpeg_compress
+import asyncio
+import aiohttp
+
+logger_name = os.environ.get("LOGGER_NAME", "manga")
+logger = logging.getLogger(logger_name)
+
+
+
+
+
+class URLFile:
+    def __init__(self, url, filepath, *args, **kwargs):
+        self.url = url
+        self.filepath = filepath
+        
+    @property
+    def filename(self):
+        return os.path.basename(self.filepath)
+    
+    # for url,filename = urlfile
+    def __iter__(self):
+        return iter([self.url, self.filename])
+
+        
+    def __repr__(self):
+        return f"URLFile(url={self.url}, filepath={self.filepath})"
+    
+    def __str__(self):
+        return self.filepath
+    
+ 
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            if key == 0:
+                return self.url
+            elif key == 1:
+                return self.filename
+            elif key == 2:
+                return self.filepath
+            else:
+                raise IndexError("URLFile index out of range")
+        else:
+            raise TypeError("URLFile indices must be integers")
+    
+    def __setitem__(self, key, value):
+        if isinstance(key, int):
+            if key == 0:
+                self.url = value
+            elif key == 2:
+                self.filepath = value
+            else:
+                raise IndexError("URLFile index out of range")
+        else:
+            raise TypeError("URLFile indices must be integers")
+        
+
+
+        
+
+class Downloader:
+    def __init__(self, urls, headers=None, download_dir=None, check_exists=True, jpg_compress=True):
+        self.urls = urls
+        self.headers = Headers().generate()
+        self.headers.update(
+            {"referer": "https://chapmanganato.com/", "origin": "https://chapmanganato.com/"}
+        )
+        self.download_dir = download_dir or os.path.join(os.getcwd(), "downloads")
+        if not os.path.exists(self.download_dir):
+            os.mkdir(self.download_dir)
+        
+        self.downloaded_files = Manager().list()
+        self.failed_urls = Manager().list()
+        self.current_progress = 0
+        self.total_urls = len(urls)
+        
+    def get_filename(self, url):
+        return hashlib.sha1(url.encode()).hexdigest() + ".jpg"
+    
+    def share_progress_bar(self, total_size: float, current_value: float, desc: str = ""):
+        os.environ["PROGRESS_BAR"] = json.dumps(
+            {"total": total_size, "current": current_value, "desc": desc}
+        )
+    
+    def share_pbar(self):
+        self.current_progress += 1
+        self.share_progress_bar(self.total_urls, self.current_progress, desc="Downloading Files")
+
+    async def download_file(self, session: aiohttp.ClientSession, url: str, pbar):
+        filename = self.get_filename(url)
+        filepath = os.path.join(self.download_dir, filename)
+        cmp_filepath = compress_file_path(filepath)
+        if os.path.exists(filepath):
+            self.downloaded_files.append(URLFile(url, filepath))
+            
+        elif os.path.exists(cmp_filepath):
+            self.downloaded_files.append(URLFile(url, cmp_filepath))
+            
+        else:
+            try:
+                async with session.get(url) as response:
+                    async with aiofiles.open(filepath, mode="wb") as f:
+                        async for chunk in response.content.iter_chunked(1024*1024):
+                            if chunk:
+                                await f.write(chunk)
+
+                compressed = jpeg_compress(filepath,cmp_filepath)
+                if compressed:
+                    os.remove(filepath)
+                    filepath = cmp_filepath
+                        
+                self.downloaded_files.append(URLFile(url, filepath))
+                    
+                
+            except Exception as e:
+                print(f"Failed to download {url}: {e}")
+                self.failed_urls.append(url)
+                return
+        pbar()
+        self.share_pbar()
+        
+        
+    async def download_all(self):
+        with alive_bar(total=len(self.urls), bar="smooth", title="Downloading") as pbar:
+            timeout = aiohttp.ClientTimeout(total=len(self.urls)//7)
+            async with aiohttp.ClientSession(headers=self.headers,timeout=timeout) as session:
+                tasks = []
+                for url in self.urls:
+                    task = asyncio.create_task(self.download_file(session, url, pbar))
+                    tasks.append(task)
+                await asyncio.gather(*tasks)
+    
+    @staticmethod
+    def download_one(url, headers, download_dir):
+        filename = get_file_name(url)
+        filepath = os.path.join(download_dir, filename)
+        cmp_filepath = compress_file_path(filepath)
+        if os.path.exists(filepath):
+            return URLFile(url, filepath)
+        elif os.path.exists(cmp_filepath):
+            return URLFile(url, cmp_filepath)
+        
+        else:
+            try:
+                response = requests.get(url, headers=headers)
+                with open(filepath, "wb") as f:
+                    for chunk in response.iter_content(chunk_size=1024*1024):
+                        if chunk:
+                            f.write(chunk)
+                compressed = jpeg_compress(filepath,cmp_filepath)
+                if compressed:
+                    os.remove(filepath)
+                    filepath = cmp_filepath
+                return URLFile(url, filepath)
+            except Exception as e:
+                logging.error(f"Failed to download {url}: {e}")
+                filepath = os.path.join(download_dir, get_file_name(f"{url}_failed"))
+                if not os.path.exists(filepath):
+                    create_failure_image("error.png", filepath, url)
+
+                return URLFile(url, filepath)            
+       
+        
+    def download(self) -> tuple[list[URLFile], list[str]]:
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(self.download_all())
+        
+        
+        downloaded_files = list(self.downloaded_files)
+        failed_urls = list(self.failed_urls)
+        
+        self.downloaded_files = Manager().list()
+        self.failed_urls = Manager().list()
+        
+        return downloaded_files, failed_urls
+
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, exc_type, exc_value, traceback):
+        pass
+
+                
+if __name__ == "__main__":
+    path = r'F:\Code\Python\manga_downloader\tmp\4acb5a8b3f327de3fcfb0086ece05304.json'
+    with open(path, "r") as f:
+        urls = json.load(f)
+    
+    print("Total:", len(urls))
+
+    s = time.time()
+    downloader = Downloader(urls)
+    # downloader.download_file()
+    e = time.time()
+    

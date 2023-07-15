@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %} {% endblock %}</title>
+    <link href="/public/bootstrap530.css" rel="stylesheet" />
+
+    <!-- jquery cdn -->
+    <script src="/public/jquery321.js"></script>
+
+    <!-- my css -->
+    <link rel="stylesheet" href="/public/style.css" />
+  </head>
+
+  <body>
+    <div class="container">
+      <div class="row d-flex justify-content-center mt-5">
+        <div class="col-md-8">
+          <div class="card">
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="font-weight-bold" id="home">Manga</span>
+
+              <div class="d-flex flex-row">
+                <button class="btn btn-primary new" id="lbtn">Light</button>
+                <button class="btn btn-primary new active" id="dbtn">
+                  Dark
+                </button>
+              </div>
+            </div>
+            {% block content %}{% endblock %}
+          </div>
+        </div>
+      </div>
+
+      {% block other %}{% endblock %}
+    </div>
+
+    <script src="/public/bootstrap530.js"></script>
+
+    <script>
+      function urlEncode(s) {
+        return Array.from(s)
+          .map((char) => String(char.charCodeAt(0)))
+          .join("-");
+      }
+
+      $("#home").on("click", function () {
+        window.location.href = "/";
+      });
+
+      function setDarkMode(isDark) {
+        if (isDark) {
+          document.documentElement.setAttribute("data-bs-theme", "dark");
+        } else {
+          document.documentElement.setAttribute("data-bs-theme", "light");
+        }
+        document.body.style.backgroundColor = isDark ? "#000" : "#eee";
+        window.localStorage.setItem("darkMode", isDark);
+      }
+
+      // check if dark mode is enabled
+      let darkMode = window.localStorage.getItem("darkMode");
+      if (darkMode) {
+        setDarkMode(darkMode === "true");
+        $("#dbtn").click();
+      }
+
+      $("#lbtn").on("click", function () {
+        if (!$(this).hasClass("active")) {
+          return;
+        }
+        $(this).removeClass("active");
+        $("#dbtn").addClass("active");
+
+        setDarkMode(false);
+      });
+
+      $("#dbtn").on("click", function () {
+        if (!$(this).hasClass("active")) {
+          return;
+        }
+        $(this).removeClass("active");
+        $("#lbtn").addClass("active");
+
+        setDarkMode(true);
+      });
+
+      // for every img tag
+      $("img").each(function () {
+        let src = $(this).attr("src");
+        console.log("IMG URL",src);
+        if (!src.startsWith("/") && src) {
+          $(this).attr("src", "/api/img_url/" + urlEncode(src));
+        }
+      });
+    </script>
+
+    {% block scripts %}{% endblock %}
+  </body>
+</html>

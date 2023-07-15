@@ -1,0 +1,156 @@
+{% extends "layout.html" %} {% block content %}
+<br />
+<h3>{{ chapter.title }} <span id="manga-title">{{ manga.title }}</span></h3>
+<br />
+
+<!-- select option for chapters -->
+<div class="row">
+  <div class="col-md-12">
+    <div class="d-flex justify-content-between">
+      <select class="form-select" id="chapters">
+        {% for ch in manga.chapters %}
+        <option value="{{ ch[0] }}"
+        {% if chapter[0] == ch[0] %}
+        selected
+        {% endif %}
+        >{{ ch[1] }}
+      </option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+
+
+{% endblock %} {% block other %}
+
+<!-- previous and next -->
+<nav class="m-3">
+  <ul class="pagination pagination-lg justify-content-center">
+    {% if chapter_idx !=0 %}
+    <li class="page-item">
+      <a class="page-link" href="{{ manga.chapters[chapter_idx-1].url }}">
+        {{ chapter_idx }}
+      </a>
+    </li>
+    {% else %}
+    <li class="page-item disabled">
+      <a class="page-link">Previous</a>
+    </li>
+    {% endif %}
+    
+    <li class="page-item active" aria-current="page">
+      <span class="page-link">{{ chapter_idx+1 }}</span>
+    </li>
+    
+    {% if chapter_idx != manga.chapters|length - 1 %}
+    <li class="page-item">
+      <a class="page-link" href="{{ manga.chapters[chapter_idx+1].url }}">
+        {{ chapter_idx+2 }}
+      </a>
+    </li>
+    {% else %}
+    <li class="page-item disabled">
+      <a class="page-link">Next</a>
+    </li>
+    {% endif %}
+    
+  </ul>
+</nav>
+<!--  -->
+
+<div
+  style="
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  "
+>
+  {% for image in imgs_urls %}
+  <img
+    src="/public/loading-fast.gif"
+    alt="{{ image }}"
+    style="
+      max-width: 100%;
+      height: auto;
+      margin: 0px;
+      padding: 0px;
+      border: 0px;
+    "
+  />
+  {% endfor %}
+</div>
+
+<!-- previous and next -->
+<nav class="mt-5">
+  <ul class="pagination pagination-lg justify-content-center">
+    {% if chapter_idx !=0 %}
+    <li class="page-item">
+      <a class="page-link" href="{{ manga.chapters[chapter_idx-1].url }}">
+        {{ chapter_idx-1 }}
+      </a>
+    </li>
+    {% else %}
+    <li class="page-item disabled">
+      <a class="page-link">Previous</a>
+    </li>
+    {% endif %}
+    
+    <li class="page-item active" aria-current="page">
+      <span class="page-link">{{ chapter_idx }}</span>
+    </li>
+    
+    {% if chapter_idx != manga.chapters|length - 1 %}
+    <li class="page-item">
+      <a class="page-link" href="{{ manga.chapters[chapter_idx+1].url }}">
+        {{ chapter_idx+1 }}
+      </a>
+    </li>
+    {% else %}
+    <li class="page-item disabled">
+      <a class="page-link">Next</a>
+    </li>
+    {% endif %}
+    
+  </ul>
+</nav>
+<!--  -->
+
+
+{% endblock %} {% block scripts %}
+<script>
+  document.title = "{{ manga.title }} - {{ chapter.title }}";
+
+  // on click manga-title
+  $("#manga-title").on("click", function () {
+    window.location.href = "/manga/" + "{{ manga.id }}";
+  });
+
+  const imgs = document.querySelectorAll("img");
+
+  function url_encode(s) {
+    return s
+      .split("")
+      .map((i) => i.charCodeAt(0))
+      .join("-");
+  }
+
+  imgs.forEach(async (img) => {
+    const url = img.alt;
+
+    // /api/img_url/<url>
+    fetch(`/api/img_url/${url_encode(url)}`)
+      .then((res) => res.blob())
+      .then((data) => {
+        const url = URL.createObjectURL(data);
+        img.src = url;
+      });
+  });
+
+  $("#chapters").change(function () {
+    const url = $(this).val();
+    window.location.href = url;
+  });
+</script>
+{% endblock %}

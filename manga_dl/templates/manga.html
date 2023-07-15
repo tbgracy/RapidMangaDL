@@ -1,0 +1,412 @@
+{% extends "layout.html" %} {% block content %}
+<br />
+<div class="row">
+  <div class="col-md-4">
+    <img src="{{ manga.cover_url }}" class="img-fluid" alt="Book Image" />
+  </div>
+  <div class="col-md-8">
+    <h2>{{ manga.title }}</h2>
+    {% if manga.alternative_title %}
+    <p><strong>Alternative Titles:</strong> {{ manga.alternative_title }}</p>
+    {% endif %}
+    <p><strong>Author:</strong> {{ manga.author }}</p>
+    <p><strong>Genre:</strong> {{ manga.genre }}</p>
+    <p><strong>Status:</strong> {{ manga.status }}</p>
+    <p><strong>Total Chapters:</strong> {{ manga.total_chapters }}</p>
+  </div>
+</div>
+
+<div class="row mt-4">
+  <div class="col-md-12">
+    <h3>Description</h3>
+    <p>{{ manga.description }}</p>
+  </div>
+</div>
+
+<!-- slider -->
+<div
+  id="carouselExampleAutoplaying"
+  class="carousel carousel-dark slide"
+  data-bs-ride="carousel"
+>
+  <div class="carousel-inner" id="slider-items">
+    <div class="carousel-item">
+      <img
+        src="{{ manga.cover_url }}"
+        class="d-block w-100"
+        style="object-fit: cover; height: 300px"
+        alt="..."
+      />
+    </div>
+  </div>
+  <button
+    class="carousel-control-prev text-primary"
+    type="button"
+    data-bs-target="#carouselExampleAutoplaying"
+    data-bs-slide="prev"
+  >
+    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+    <span class="visually-hidden">Previous</span>
+  </button>
+  <button
+    class="carousel-control-next"
+    type="button"
+    data-bs-target="#carouselExampleAutoplaying"
+    data-bs-slide="next"
+  >
+    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+    <span class="visually-hidden">Next</span>
+  </button>
+</div>
+
+<div
+  class="modal fade"
+  id="imagemodal"
+  tabindex="-1"
+  role="dialog"
+  aria-hidden="true"
+>
+  <div
+    class="modal-dialog modal-dialog-centered justify-content-center modal-lg"
+  >
+    <img src="" id="imagepreview" style="width: 70%; height: auto" />
+  </div>
+</div>
+
+<!-- slider -->
+
+<!-- download ---------->
+<div class="row mt-4">
+  <!-- download btn -->
+  <button
+    type="button"
+    class="btn btn-primary two-color-element"
+    id="downloadBtn"
+  >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="16"
+      height="16"
+      fill="currentColor"
+      class="bi bi-download"
+      viewBox="0 0 16 16"
+    >
+      <path
+        d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"
+      />
+      <path
+        d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"
+      />
+    </svg>
+    <span> Download </span>
+  </button>
+
+  <!-- Modal -->
+  <div
+    class="modal fade"
+    id="downloadModal"
+    tabindex="-1"
+    role="dialog"
+    aria-hidden="true"
+  >
+    <div
+      class="modal-dialog modal-dialog-centered justify-content-center modal-lg"
+    >
+      <div class="modal-content" style="padding: 20px">
+        <h5 class="modal-title">
+          {{ manga.title }} ({{ manga.total_chapters }})
+        </h5>
+        <!-- show two select bar -->
+        <div class="modal-body">
+          <!-- col -->
+
+          <!-- quality -->
+          <div class="row mb-2" id="qlabel">
+            <label for="dquality" class="form-label" id="dquality-label">
+              Quality 100
+            </label>
+            <input
+              type="range"
+              class="form-range"
+              min="0"
+              max="100"
+              value="100"
+              id="dquality"
+            />
+          </div>
+          <!-- quality -->
+
+          <!-- epub,pdf -->
+          <div class="row mb-2">
+            <div class="form-check form-check-inline">
+              <input
+                class="form-check-input downType"
+                type="checkbox"
+                id="inlineCheckbox1"
+                value="pdf"
+              />
+              <label class="form-check-label" for="inlineCheckbox1">PDF</label>
+              <br />
+            </div>
+            <div class="form-check form-check-inline">
+              <input
+                class="form-check-input downType"
+                type="checkbox"
+                id="inlineCheckbox2"
+                value="epub"
+                checked
+              />
+              <label class="form-check-label" for="inlineCheckbox2">EPUB</label>
+            </div>
+          </div>
+          <!-- epub,pdf -->
+
+          <div class="row mb-2">
+            <select class="form-select" id="chapter-start">
+              {% for chapter in manga.chapters %}
+              <option value="{{ chapter[0] }}">{{ chapter[1] }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="row m-1">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              fill="currentColor"
+              class="bi bi-arrow-down"
+              viewBox="0 0 16 16"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M8 1a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 13.293V1.5A.5.5 0 0 1 8 1z"
+              />
+            </svg>
+          </div>
+          <div class="row mt-2">
+            <select class="form-select" id="chapter-end">
+              {% for chapter in manga.chapters[::-1] %}
+              <option value="{{ chapter[0] }}">{{ chapter[1] }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- download btn -->
+          <button type="button" class="btn btn-primary mt-4" id="downBtn">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              fill="currentColor"
+              class="bi bi-download"
+              viewBox="0 0 16 16"
+            >
+              <path
+                d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"
+              />
+              <path
+                d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"
+              />
+            </svg>
+            Download
+          </button>
+
+          <!-- progress bar -->
+
+          <div class="row">
+            <div class="progress-outer">
+              <div class="progress">
+                <div
+                  class="progress-bar progress-bar-info progress-bar-striped active"
+                  style="
+                    width: 0%;
+                    box-shadow: -1px 10px 10px rgba(91, 192, 222, 0.7);
+                  "
+                  id="progress"
+                ></div>
+                <div class="progress-value" id="progress-value"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- progress bar -->
+        </div>
+      </div>
+      <!-- show two select bar -->
+    </div>
+  </div>
+  <!-- Modal -->
+</div>
+
+<!-- download ---------------->
+
+<!-- downloaded modal -->
+<div class="modal fade" id="downloadedModal">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5" id="staticBackdropLabel">Output Files</h1>
+      </div>
+      <div class="modal-body">...</div>
+    </div>
+  </div>
+</div>
+<!-- downloaded modal -->
+
+<div class="row mt-4">
+  <div class="col-md-12">
+    <div class="d-flex justify-content-between">
+      <h3>Chapters</h3>
+
+      <button class="btn btn-secondary" id="sort">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          fill="currentColor"
+          class="bi bi-sort-up-alt"
+          viewBox="0 0 16 16"
+        >
+          <path
+            d="M3.5 13.5a.5.5 0 0 1-1 0V4.707L1.354 5.854a.5.5 0 1 1-.708-.708l2-1.999.007-.007a.498.498 0 0 1 .7.006l2 2a.5.5 0 1 1-.707.708L3.5 4.707V13.5zm4-9.5a.5.5 0 0 1 0-1h1a.5.5 0 0 1 0 1h-1zm0 3a.5.5 0 0 1 0-1h3a.5.5 0 0 1 0 1h-3zm0 3a.5.5 0 0 1 0-1h5a.5.5 0 0 1 0 1h-5zM7 12.5a.5.5 0 0 0 .5.5h7a.5.5 0 0 0 0-1h-7a.5.5 0 0 0-.5.5z"
+          />
+        </svg>
+      </button>
+    </div>
+    <br />
+    <div class="list-group" id="chapters">
+      {% for chapter in manga.chapters %}
+
+      <a
+        href="{{ chapter[0] }}"
+        class="list-group-item list-group-item-action"
+        data-time="{{ chapter[3] }}"
+      >
+        <div class="d-flex justify-content-between">
+          <div class="col-6">{{ chapter[1] }}</div>
+          <span>{{ chapter[2] }}</span>
+          <span>{{ chapter[3] }}</span>
+        </div>
+      </a>
+
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{% endblock %} {% block scripts %}
+<script src="/public/manga.js"></script>
+<script>
+  document.title = "{{ manga.title }}";
+
+ async function setFaviconFromImageUrl(imageUrl) {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  const img = new Image();
+
+  img.crossOrigin = 'anonymous';
+  img.onload = function() {
+    // Get the top middle segment of the image
+    const segmentWidth = 128;
+    const segmentHeight = 128;
+    const segmentX = (img.width - segmentWidth) / 2;
+    const segmentY = (img.height - segmentHeight) * 0.1;
+    canvas.width = segmentWidth;
+    canvas.height = segmentHeight;
+    ctx.drawImage(img, segmentX, segmentY, segmentWidth, segmentHeight, 0, 0, segmentWidth, segmentHeight);
+
+    // Make the image round
+    ctx.beginPath();
+    ctx.arc(segmentWidth / 2, segmentHeight / 2, segmentWidth / 2, 0, 2 * Math.PI);
+    ctx.clip();
+
+    // Draw the rounded image segment
+    ctx.drawImage(img, segmentX, segmentY, segmentWidth, segmentHeight, 0, 0, segmentWidth, segmentHeight);
+
+    const link = document.createElement('link');
+    link.type = 'image/x-icon';
+    link.rel = 'icon';
+    link.href = canvas.toDataURL('image/x-icon');
+
+    const head = document.getElementsByTagName('head')[0];
+    const existingFavicon = head.querySelector('link[rel="icon"]');
+    if (existingFavicon) {
+      head.removeChild(existingFavicon);
+    }
+    head.appendChild(link);
+  };
+
+  const proxyUrl = `/api/img_url/${urlEncode(imageUrl)}`;
+  img.src = proxyUrl;
+}
+
+  setFaviconFromImageUrl("{{ manga.cover_url }}");
+
+  const mangaChapters = {{ chapters | safe }};
+  const isDownloadingServer = "{{ downloading }}";
+
+  if (isDownloadingServer == 1) {
+    interval = setInterval(updateProgress, 2000);
+  }
+
+  // sort mangaChapters by views ex. 420K, 1M, 2.2M
+  const sortedChapters = mangaChapters.sort((a, b) => {
+    return getViews(b.views) - getViews(a.views);
+  });
+
+  const totalChapters = sortedChapters.length;
+  // get top 3 from first segment(start of array) 2 from second segment(middle) and 1 from third segment(end of array)
+  const topChapters = [
+    ...sortedChapters.slice(0, 3),
+    ...sortedChapters.slice(
+      Math.floor(totalChapters / 2),
+      Math.floor(totalChapters / 2 + 2)
+    ),
+    ...sortedChapters.slice(-1),
+  ];
+
+  const topChapterUrls = topChapters.map((chapter) => {
+    return chapter.url;
+  });
+
+  let flag = true;
+  topChapterUrls.forEach(async (chapterUrl) => {
+    const id = "{{ manga.id | safe}}";
+    const url = "/api/manga/imgs";
+    $.ajax({
+      type: "POST",
+      url: url,
+      data: JSON.stringify({ manga_id: id, chapter_url: chapterUrl }),
+      contentType: "application/json",
+      dataType: "json",
+      success: function (data) {
+        if (data.success) {
+          const imgs = data.imgs;
+
+          // random select img from middle of array
+          const middleStart = Math.floor(imgs.length / 3);
+          const middleEnd = Math.floor((2 * imgs.length) / 3);
+          const randomIndex =
+            Math.floor(Math.random() * (middleEnd - middleStart + 1)) +
+            middleStart;
+          const randomImage = imgs[randomIndex];
+
+          const img = `/api/img_url/${urlEncode(randomImage)}`;
+          const item = `<div class="carousel-item">
+                                <img src="${img}" class="d-block w-100" style="object-fit: cover; height: 300px"/>
+                            </div>`;
+
+          $("#slider-items").append(item);
+          if (flag) {
+            // remove all active classes
+            $(".carousel-item").removeClass("active");
+            // add active class to 2nd item
+            $(".carousel-item:nth-child(2)").addClass("active");
+            flag = false;
+          }
+        }
+      },
+    });
+  });
+</script>
+{% endblock %}
