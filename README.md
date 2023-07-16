@@ -31,7 +31,7 @@ manga-dl
 
 Here's a quick demo:
 
-![Interactive CLI Demo](cli_demo.gif)
+![Interactive CLI Demo](https://github.com/shhossain/RapidMangaDL/blob/main/cli_demo.gif)
 
 # Web-based GUI
 
@@ -45,7 +45,7 @@ manga-dl gui
 
 Here's a sneak peek:
 
-![Web-based GUI Demo](web_demo.gif)
+![Web-based GUI Demo](https://github.com/shhossain/RapidMangaDL/blob/main/web_demo.gif)
 
 # Command Line Interface (CLI)
 
