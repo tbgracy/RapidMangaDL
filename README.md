@@ -1,7 +1,5 @@
 # Manga Downloader
 
-![Manga Downloader](images/manga_downloader_logo.png)
-
 Manga Downloader is a Python package that allows you to swiftly download manga from various sources. It offers multiple ways to interact with the application, including a Command Line Interface (CLI) and an Interactive CLI with a text-based prompt. Additionally, it comes with a web-based GUI to provide a user-friendly experience.
 [Suppoted Sources](/sources.md)
 
@@ -26,12 +24,14 @@ Customize the quality of the images (10 to 100).
 The Interactive CLI mode provides a user-friendly prompt to search for a manga, select chapters, specify the format, and set image quality. Here's a quick demo:
 
 ## Interactive CLI Demo
+![Interactive CLI Demo](cli_demo.gif)
 
 # Web-based GUI
 
 The Web-based GUI offers a graphical interface to interact with the application. You can easily search for manga, select chapters, and initiate downloads. Here's a sneak peek:
 
 ## Web-based GUI Demo
+![Web-based GUI Demo](web_demo.gif)
 
 # Command Line Interface (CLI)
 
