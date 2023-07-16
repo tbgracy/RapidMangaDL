@@ -41,7 +41,8 @@ function searchQuery(query) {
     search.val(query);
   }
 
-  const encodedQuery = encodeURIComponent(query);
+  // replace / with %%% to avoid url encoding
+  const encodedQuery = encodeURIComponent(query.replace("/", "%%%"));
   window.history.pushState("", "", "/search/" + encodedQuery);
   document.title = "Search: " + query;
 
@@ -74,18 +75,34 @@ function add_results(data) {
 
     for (let i = 0; i < results.length; i++) {
       let result = results[i];
+
+      let last_chapter = result.last_chapter;
+      if (last_chapter.length > 15) {
+        last_chapter = last_chapter.substring(0, 15) + "...";
+      }
+
+      let last_part = `<span class="dots"></span><small>${last_chapter}</small><span class="dots"></span>`;
+      if (!last_chapter) {
+        last_part = "";
+      }
+
+      let cover_url = result.cover_url;
+      if (!cover_url) {
+        cover_url = "/public/error.png";
+      }
+
       let html = `<div class="mt-3 manga" id="m-${result.id}">
               <div class="d-flex justify-content-between align-items-center">
                 <div class="d-flex flex-row align-items-center">
                 <div class="d-flex flex-column showimg" style="padding-right: 10px;">
-                  <img src="${result.cover_url}" class="rounded" style="width: 70px; height: 100px;" />
+                  <img src="${cover_url}" class="rounded" style="width: 70px; height: 100px;" />
                 </div>
                   <div class="d-flex flex-column">
                     <span>${result.title}</span>
                     <div class="d-flex flex-row align-items-center time-text">
                       <small>${result.author}</small>
-                      <span class="dots"></span>
-                      <small>${result.last_chapter}</small>
+                     ${last_part}
+                    <small>${result.domain}</small>
                     </div>
                   </div>
                 </div>
@@ -98,6 +115,5 @@ function add_results(data) {
 
 $(document).on("click", ".manga", function () {
   let id = $(this).attr("id").replace("m-", "");
-  console.log(id);
   window.location.href = "/manga/" + id;
 });

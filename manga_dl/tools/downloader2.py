@@ -71,7 +71,8 @@ class Downloader:
         else:
             tmp_path = filepath + ".tmp"
             try:
-                async with session.get(url) as response:
+                timeout = aiohttp.ClientTimeout(total=auto_scaled_divide(self.total_urls))
+                async with session.get(url,timeout=timeout) as response:
                     async with aiofiles.open(tmp_path, mode="wb") as f:
                         async for chunk in response.content.iter_chunked(1024*1024):
                             if chunk:
@@ -92,11 +93,12 @@ class Downloader:
                 return
         pbar()
         self.share_pbar()
+        self.total_urls -= 1
         
         
     async def download_all(self):
         with alive_bar(total=len(self.urls), bar="smooth", title="Downloading") as pbar:
-            timeout = aiohttp.ClientTimeout(total=auto_scaled_divide(len(self.urls)))
+            timeout = aiohttp.ClientTimeout(total=auto_scaled_divide(self.total_urls))
             async with aiohttp.ClientSession(headers=self.headers,timeout=timeout) as session:
                 tasks = []
                 for url in self.urls:

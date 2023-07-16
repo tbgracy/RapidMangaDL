@@ -46,9 +46,16 @@
             <div class="d-flex flex-row align-items-center time-text">
               
               <small>{{ result.author }}</small>
+              {% if result.last_chapter %}
               <span class="dots"></span>
+              <!-- if last chapter len is greater then 15 slice it and add ... -->
+              {% if result.last_chapter|length > 15 %}
+              <small>{{ result.last_chapter[:15] + "..."}}</small>
+              {% else %}
               <small>{{ result.last_chapter }}</small>
+              {% endif %}
               <span class="dots"></span>
+              {% endif %}
               <small>{{ result.source.domain }}</small>
             </div>
           </div>

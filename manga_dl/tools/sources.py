@@ -307,6 +307,18 @@ class MangaNato(BaseSource):
         }
         filename = get_file_name(f"{url}/{query}.json", True)
         path = os.path.join(os.environ.get("TEMP_DIR", "tmp"), filename)
+        if os.path.exists(path):
+            try:
+                with open(path, 'r') as f:
+                    results = json.load(f)
+                    if not results:
+                        raise Exception(f"No data found in the `{query}` cache in {path}")
+                return results
+            except Exception as e:
+                logger.error(f"Failed to load `{query}` cache from {path}")
+        
+        
+        
         results = []
         try:
             res = requests.post(url, headers=headers, data=data)
@@ -319,7 +331,7 @@ class MangaNato(BaseSource):
                         "url": r["url_story"],
                         "title": re.sub(r"<[^>]*>", "", r["name"]).strip().upper(),
                         "cover_url": r["image"],
-                        "author": r["author"],
+                        "author": re.sub(r"<[^>]*>", "", r["author"]).strip().upper(),
                         "last_chapter": r["lastchapter"],
                     }
                 )
@@ -508,6 +520,15 @@ class ONEkissmanga(BaseSource):
 
         filename = get_file_name(f"{search_url}/{query}.json", True)
         path = os.path.join(os.environ.get("TEMP_DIR", "tmp"), filename)
+        if os.path.exists(path):
+            try:
+                with open(path, 'r') as f:
+                    results = json.load(f)
+                    if not results:
+                        raise Exception(f"No data found in the `{query}` cache in {path}")
+                return results
+            except Exception as e:
+                logger.error(f"Failed to load `{query}` cache from {path}")
 
         results = []
         try:

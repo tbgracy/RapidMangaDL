@@ -1,16 +1,24 @@
+
+
+try:
+    from manga import Manga, Chapter
+    from tools import Downloader
+except ImportError:
+    from manga_dl.manga import Manga, Chapter
+    from manga_dl.tools import Downloader
+
+import os 
 import json
 from flask import Flask, render_template, request, redirect, url_for, jsonify
-from manga import Manga, Chapter
-import os
 from multiprocessing import Value
-from tools import Downloader
-from tools.sources import get_source
 from fake_headers import Headers
 from urllib.parse import urlparse
 
 headers = Headers().generate()
 
 app = Flask(__name__, static_folder="public")
+app.url_map.strict_slashes = False
+
 temp_dir = "tmp"
 if not os.path.exists(temp_dir):
     os.makedirs(temp_dir)
@@ -31,6 +39,7 @@ def index():
 
 @app.route("/search/<string:query>", methods=["GET"])
 def search_query(query):
+    query = query.replace("%%%", "/")
     mangas = Manga.search(query)
     return render_template("search.html", results=mangas, query=query)
 
@@ -135,7 +144,7 @@ def search():
     if error:
         data["error"] = error
 
-    print("Search:", data)
+
     return jsonify(data)
 
 

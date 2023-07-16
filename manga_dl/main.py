@@ -97,7 +97,7 @@ def prompt(query=None):
     if choice == "Yes":
         prompt()
     else:
-        print("Farewell! :)")
+        print("Goodbye!")
         
 
 
@@ -169,7 +169,7 @@ def parser():
 
     if args.mode == "gui":
         print(f"Running on http://{args.host}:{args.port}")
-        # webbrowser.open(f"http://{args.host}:{args.port}")
+        webbrowser.open(f"http://{args.host}:{args.port}")
         app.run(host=args.host, port=args.port)
 
     elif args.mode == "prompt":
@@ -183,7 +183,7 @@ def main():
     try:
         parser()
     except KeyboardInterrupt:
-        print("Farewell! :)")
+        print("Goodbye!")
         sys.exit(0)
     except Exception as e:
         logger.error("An error occured", exc_info=True)

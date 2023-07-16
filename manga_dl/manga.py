@@ -13,25 +13,41 @@ from fuzzywuzzy import fuzz
 
 
 # add tools to sys.path
-import sys
 
-sys.path.append(os.path.join(os.path.dirname(__file__), "."))
+try:
+    from tools import (
+        Downloader,
+        PDFChapter,
+        PDF,
+        create_failure_image,
+        get_file_name,
+        URLFile,
+        replace_unimportant,
+        logger,
+        http_split
+    )
 
-from tools import (
-    Downloader,
-    PDFChapter,
-    PDF,
-    create_failure_image,
-    get_file_name,
-    URLFile,
-    replace_unimportant,
-    logger,
-    http_split
-)
+    from tools.exceptions import MangaNotFound
+    from tools.sources import get_source, sources
+    from tools.sources import Chapter
 
-from tools.exceptions import MangaNotFound
-from tools.sources import get_source, sources
-from tools.sources import Chapter
+except ImportError:
+    from manga_dl.tools import (
+        Downloader,
+        PDFChapter,
+        PDF,
+        create_failure_image,
+        get_file_name,
+        URLFile,
+        replace_unimportant,
+        logger,
+        http_split
+    )
+
+    from manga_dl.tools.exceptions import MangaNotFound
+    from manga_dl.tools.sources import get_source, sources
+    from manga_dl.tools.sources import Chapter
+    
 
 
 os.environ["TEMP_DIR"] = os.environ.get("TEMP_DIR", "tmp")
@@ -172,6 +188,7 @@ class Manga:
             "views": self.views,
             "rating": self.rating,
             "chapters": self.chapters,
+            "domain": self.source.current_domain,
         }
 
     def __str__(self) -> str:

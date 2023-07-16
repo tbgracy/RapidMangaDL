@@ -1,0 +1,13 @@
+reportlab>=4.0.4
+img2pdf>=0.4.0
+PyPDF2>=3.0.1
+pillow
+fake_headers
+aiofiles
+alive_progress
+aiohttp
+BeautifulSoup4
+colorama
+flask
+ebooklib
+fuzzywuzzy

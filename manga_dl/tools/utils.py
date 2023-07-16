@@ -13,10 +13,10 @@ import math
 
 logger = logging.getLogger(os.environ.get("LOGGER_NAME", "tools"))
 _utils_path = os.path.dirname(os.path.abspath(__file__))
-error_img_path = os.path.join(_utils_path, "..", "public", "error.png")
+error_img_path = os.path.join(os.path.dirname(_utils_path), "public", "error.png")
 
 def auto_scaled_divide(value):
-    scaling_factor = math.log10(1 + abs(value)) * 1.1
+    scaling_factor = math.log10(1 + abs(value)) * 0.5
     return math.ceil(value // scaling_factor)
 
 def replace_unimportant(text: str, but: Union[list, None] = None) -> str:
@@ -145,6 +145,5 @@ def http_split(txt, sep):
     for p in parts[1:]:
         rest.append(f"http{p}")
     return [url1] + rest
-
 
 
