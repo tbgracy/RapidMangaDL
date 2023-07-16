@@ -21,16 +21,30 @@ Customize the quality of the images (10 to 100).
 
 # Interactive CLI
 
-The Interactive CLI mode provides a user-friendly prompt to search for a manga, select chapters, specify the format, and set image quality. Here's a quick demo:
+The Interactive CLI mode provides a user-friendly prompt to search for a manga, select chapters, specify the format, and set image quality.
 
-## Interactive CLI Demo
+To start the Interactive CLI mode, simply run:
+
+```bash
+manga-dl
+```
+
+Here's a quick demo:
+
 ![Interactive CLI Demo](cli_demo.gif)
 
 # Web-based GUI
 
-The Web-based GUI offers a graphical interface to interact with the application. You can easily search for manga, select chapters, and initiate downloads. Here's a sneak peek:
+The Web-based GUI offers a graphical interface to interact with the application. You can easily search for manga, select chapters, and initiate downloads.
 
-## Web-based GUI Demo
+To start the server, run:
+
+```bash
+manga-dl gui
+```
+
+Here's a sneak peek:
+
 ![Web-based GUI Demo](web_demo.gif)
 
 # Command Line Interface (CLI)
@@ -38,18 +52,8 @@ The Web-based GUI offers a graphical interface to interact with the application.
 The CLI mode allows you to interact with the application using command-line arguments. Here's an example of how you can use it:
 
 ```bash
-manga-dl -m https://manganato.com/manga-az963307 -c 1-10 -f epub -q 90
+manga-dl cli -m https://manganato.com/manga-az963307 -c 1-10 -f epub -q 90
 ```
-
-How to Use
-Interactive CLI
-To start the Interactive CLI mode, simply run:
-
-```bash
-manga-dl
-```
-
-# Command Line Interface (CLI)
 
 You can use the Command Line Interface (CLI) with arguments to initiate a download. Here's a breakdown of the available options:
 
