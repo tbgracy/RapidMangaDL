@@ -1,18 +1,14 @@
-import nest_asyncio
-nest_asyncio.apply()
-
-
 import json
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from manga import Manga, Chapter
 import os
-from fake_headers import Headers
 from multiprocessing import Value
 from tools import Downloader
-
+from tools.sources import get_source
+from fake_headers import Headers
+from urllib.parse import urlparse
 
 headers = Headers().generate()
-headers["referer"] = "https://chapmanganato.com/"
 
 app = Flask(__name__, static_folder="public")
 temp_dir = "tmp"
@@ -21,6 +17,7 @@ if not os.path.exists(temp_dir):
 
 
 logger = app.logger
+logger.setLevel(os.environ.get("LOGGING_LEVEL", "DEBUG"))
 
 isDownloading = Value("i", 0)
 
@@ -36,37 +33,6 @@ def index():
 def search_query(query):
     mangas = Manga.search(query)
     return render_template("search.html", results=mangas, query=query)
-
-
-@app.route("/search", methods=["POST"])
-def search():
-    data = request.get_json()
-    query = data["query"]
-
-    suc = True
-    results = []
-    error = ""
-    try:
-        if query:
-            mangas = Manga.search(query)
-            results = [i.to_json() for i in mangas]
-        else:
-            suc = False
-            error = "No query provided"
-    except Exception as e:
-        suc = False
-        error = "Unknown error"
-        logger.error(e, exc_info=True)
-
-    data = {
-        "success": suc,
-        "results": results,
-    }
-
-    if error:
-        data["error"] = error
-
-    return jsonify(data)
 
 
 @app.route("/manga/<string:manga_id>", methods=["GET"])
@@ -89,12 +55,10 @@ def manga(manga_id):
 
 
 def url_encode(s):
-    # convert to to ascii with - as the separator
     return "-".join([str(ord(i)) for i in s])
 
 
 def url_decode(s):
-    # convert back to string
     return "".join([chr(int(i)) for i in s.split("-")])
 
 
@@ -126,7 +90,6 @@ def manga_chapters(manga_id, chapter):
         if chapter[0].endswith("/"):
             chapter[0] = chapter[0][:-1]
         chapter[0] = f"/manga/{manga_id}/{chapter[0].split('/')[-1]}"
-    
 
     chapter = Chapter.from_url(chapter_url)
     imgs = chapter.img_urls
@@ -141,6 +104,41 @@ def manga_chapters(manga_id, chapter):
     )
 
 
+################### API ####################
+
+
+@app.route("/api/search", methods=["POST"])
+def search():
+    data = request.get_json()
+    query = data["query"]
+
+    suc = True
+    results = []
+    error = ""
+    try:
+        if query:
+            mangas = Manga.search(query)
+            results = [i.to_json() for i in mangas]
+        else:
+            suc = False
+            error = "No query provided"
+    except Exception as e:
+        suc = False
+        error = "Unknown error"
+        logger.error(e, exc_info=True)
+
+    data = {
+        "success": suc,
+        "results": results,
+    }
+
+    if error:
+        data["error"] = error
+
+    print("Search:", data)
+    return jsonify(data)
+
+
 @app.route("/api/manga/download", methods=["POST"])
 def manga_download():
     if isDownloading.value == 1:  # type: ignore
@@ -152,24 +150,29 @@ def manga_download():
     end_url = data["end_url"]
     quality = data["quality"]
     dtypes = data["dtypes"]
+    manga_id = data["manga_id"]
 
     if start_url.endswith("/"):
         start_url = start_url[:-1]
     if end_url.endswith("/"):
         end_url = end_url[:-1]
 
-    manga_id = start_url.split("/")[2]
 
-    # replace manga/ with manga-
-    start_url = start_url.replace("manga/", "manga-")
-    end_url = end_url.replace("manga/", "manga-")
-    start_url = f"https://chapmanganato.com{start_url}"
-    end_url = f"https://chapmanganato.com{end_url}"
     quality = int(quality)
 
-    print("Download:", start_url, end_url, quality, dtypes)
+    print("Download:",manga_id, start_url, end_url, quality, dtypes)
 
     manga = Manga.from_id(manga_id)
+    manga.set_info()
+    
+    url = manga.url
+    if url.endswith("/"):
+        url = url[:-1]
+    
+    start_url = f"{url}/{start_url.split('/')[-1]}"
+    end_url = f"{url}/{end_url.split('/')[-1]}"
+    
+    
     manga.select_chapters(f"{start_url}-{end_url}")
 
     data = {"success": True, "paths": []}
@@ -217,20 +220,11 @@ def manga_chapter_img():
         "success": True,
         "imgs": [],
     }
-
+    
     manga = Manga.from_id(manga_id)
-    try:
-        manga.set_info()
-    except Exception as e:
-        logger.error(e, exc_info=True)
-        sdata["success"] = False
-        sdata["error"] = "Unknown error"
+    manga.set_info()
+    imgs = manga.source.get_chapter_img_urls("/"+chapter_url.split("/")[-1])
 
-    # manga/dg980989/chapter-70
-    chapter_url = chapter_url.replace("manga/", "manga-")
-    url = f"https://chapmanganato.com/{chapter_url}"
-    chapter = Chapter.from_url(url)
-    imgs = chapter.img_urls
     sdata["imgs"] = imgs
     return jsonify(sdata)
 
@@ -238,13 +232,14 @@ def manga_chapter_img():
 @app.route("/api/img_url/<url>", methods=["GET"])
 def img_url(url):
     url = url_decode(url)
+    parse = urlparse(url)
+    headers['referer'] = f"{parse.scheme}://{parse.netloc}"
+    
     urlpath = Downloader.download_one(url, headers=headers, download_dir=temp_dir)
 
     with open(urlpath.filepath, "rb") as f:
         return f.read(), 200, {"Content-Type": "image/jpeg"}
 
 
-
-
 if __name__ == "__main__":
-    app.run(host="0.0.0.0",port=80)
+    app.run(host="0.0.0.0", port=80)

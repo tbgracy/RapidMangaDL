@@ -298,6 +298,7 @@
 <script src="/public/manga.js"></script>
 <script>
   document.title = "{{ manga.title }}";
+  const mangaID = "{{ manga.id }}";
 
  async function setFaviconFromImageUrl(imageUrl) {
   const canvas = document.createElement('canvas');

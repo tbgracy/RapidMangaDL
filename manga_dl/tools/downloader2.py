@@ -1,3 +1,6 @@
+
+
+
 import os
 import json
 import logging
@@ -8,9 +11,14 @@ from alive_progress import alive_bar
 import requests
 from fake_headers import Headers
 import time
-from .utils import create_failure_image, compress_file_path, get_file_name, jpeg_compress
+from .utils import create_failure_image, compress_file_path, get_file_name, jpeg_compress, safe_remove, auto_scaled_divide
+from .models import URLFile
 import asyncio
 import aiohttp
+
+import platform
+if platform.system()=='Windows':
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 logger_name = os.environ.get("LOGGER_NAME", "manga")
 logger = logging.getLogger(logger_name)
@@ -19,50 +27,7 @@ logger = logging.getLogger(logger_name)
 
 
 
-class URLFile:
-    def __init__(self, url, filepath, *args, **kwargs):
-        self.url = url
-        self.filepath = filepath
-        
-    @property
-    def filename(self):
-        return os.path.basename(self.filepath)
-    
-    # for url,filename = urlfile
-    def __iter__(self):
-        return iter([self.url, self.filename])
 
-        
-    def __repr__(self):
-        return f"URLFile(url={self.url}, filepath={self.filepath})"
-    
-    def __str__(self):
-        return self.filepath
-    
- 
-    def __getitem__(self, key):
-        if isinstance(key, int):
-            if key == 0:
-                return self.url
-            elif key == 1:
-                return self.filename
-            elif key == 2:
-                return self.filepath
-            else:
-                raise IndexError("URLFile index out of range")
-        else:
-            raise TypeError("URLFile indices must be integers")
-    
-    def __setitem__(self, key, value):
-        if isinstance(key, int):
-            if key == 0:
-                self.url = value
-            elif key == 2:
-                self.filepath = value
-            else:
-                raise IndexError("URLFile index out of range")
-        else:
-            raise TypeError("URLFile indices must be integers")
         
 
 
@@ -71,10 +36,7 @@ class URLFile:
 class Downloader:
     def __init__(self, urls, headers=None, download_dir=None, check_exists=True, jpg_compress=True):
         self.urls = urls
-        self.headers = Headers().generate()
-        self.headers.update(
-            {"referer": "https://chapmanganato.com/", "origin": "https://chapmanganato.com/"}
-        )
+        self.headers = headers or Headers().generate()
         self.download_dir = download_dir or os.path.join(os.getcwd(), "downloads")
         if not os.path.exists(self.download_dir):
             os.mkdir(self.download_dir)
@@ -107,14 +69,16 @@ class Downloader:
             self.downloaded_files.append(URLFile(url, cmp_filepath))
             
         else:
+            tmp_path = filepath + ".tmp"
             try:
                 async with session.get(url) as response:
-                    async with aiofiles.open(filepath, mode="wb") as f:
+                    async with aiofiles.open(tmp_path, mode="wb") as f:
                         async for chunk in response.content.iter_chunked(1024*1024):
                             if chunk:
                                 await f.write(chunk)
-
-                compressed = jpeg_compress(filepath,cmp_filepath)
+                                
+                os.rename(tmp_path, filepath)
+                compressed = jpeg_compress(filepath, cmp_filepath)
                 if compressed:
                     os.remove(filepath)
                     filepath = cmp_filepath
@@ -132,7 +96,7 @@ class Downloader:
         
     async def download_all(self):
         with alive_bar(total=len(self.urls), bar="smooth", title="Downloading") as pbar:
-            timeout = aiohttp.ClientTimeout(total=len(self.urls)//7)
+            timeout = aiohttp.ClientTimeout(total=auto_scaled_divide(len(self.urls)))
             async with aiohttp.ClientSession(headers=self.headers,timeout=timeout) as session:
                 tasks = []
                 for url in self.urls:
@@ -166,14 +130,19 @@ class Downloader:
                 logging.error(f"Failed to download {url}: {e}")
                 filepath = os.path.join(download_dir, get_file_name(f"{url}_failed"))
                 if not os.path.exists(filepath):
-                    create_failure_image("error.png", filepath, url)
+                    create_failure_image(filepath, url)
 
                 return URLFile(url, filepath)            
        
-        
+    def delete_tmp_files(self):
+        for file in os.listdir(self.download_dir):
+            if file.endswith(".tmp"):
+                safe_remove(os.path.join(self.download_dir, file))
+    
     def download(self) -> tuple[list[URLFile], list[str]]:
-        loop = asyncio.get_event_loop()
+        loop = asyncio.new_event_loop()
         loop.run_until_complete(self.download_all())
+        
         
         
         downloaded_files = list(self.downloaded_files)
@@ -181,6 +150,8 @@ class Downloader:
         
         self.downloaded_files = Manager().list()
         self.failed_urls = Manager().list()
+        self.current_progress = 0
+        self.delete_tmp_files()
         
         return downloaded_files, failed_urls
 

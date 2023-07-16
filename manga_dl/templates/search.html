@@ -32,7 +32,11 @@
         <div class="d-flex flex-row align-items-center">
           <div class="d-flex flex-column showimg" style="padding-right: 10px">
             <img
+            {% if result.cover_url %}
               src="{{ result.cover_url }}"
+            {% else %}
+              src="/public/error.png"
+            {% endif %}
               class="rounded"
               style="width: 70px; height: 100px"
             />
@@ -40,9 +44,12 @@
           <div class="d-flex flex-column">
             <span>{{ result.title }}</span>
             <div class="d-flex flex-row align-items-center time-text">
+              
               <small>{{ result.author }}</small>
               <span class="dots"></span>
               <small>{{ result.last_chapter }}</small>
+              <span class="dots"></span>
+              <small>{{ result.source.domain }}</small>
             </div>
           </div>
         </div>

@@ -89,11 +89,23 @@
       // for every img tag
       $("img").each(function () {
         let src = $(this).attr("src");
-        console.log("IMG URL",src);
         if (!src.startsWith("/") && src) {
           $(this).attr("src", "/api/img_url/" + urlEncode(src));
         }
       });
+
+      // on image load show /public/loading-fast.gif
+      $("img").on("load", function () {
+        $(this).css("display", "block");
+      });
+
+      // on image error show /public/error.png
+      $("img").on("error", function () {
+        $(this).attr("src", "/public/error.png");
+      });
+      
+      
+
     </script>
 
     {% block scripts %}{% endblock %}

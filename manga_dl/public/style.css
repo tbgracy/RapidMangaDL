@@ -236,10 +236,18 @@ body {
   }
 }
 
+/* mt-3 manga click able */
+.manga {
+  cursor: pointer;
+}
 
 /* two color */
 .two-color-element {
-  background: linear-gradient(to right, var(--bs-primary) 100%, var(--bs-body-color) 0%);
+  background: linear-gradient(
+    to right,
+    var(--bs-primary) 100%,
+    var(--bs-body-color) 0%
+  );
   border: none;
   transition: width 0.3s ease;
 }

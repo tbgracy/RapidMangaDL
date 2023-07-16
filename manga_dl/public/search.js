@@ -7,15 +7,23 @@ const timePassed = (d1, d2) => {
   return diff;
 };
 
-
 // on search send post request to /search with query
 
+let searchTime = new Date();
 $("#search").on("keyup", function () {
   let query = $(this).val().trim();
   if (query.length < 3) {
     return;
   }
-  searched_querys.push(query);
+
+  // wait for 500ms before sending request
+  setTimeout(() => {
+    let now = new Date();
+    if (timePassed(searchTime, now) >= 0.5) {
+      searchTime = now;
+      searchQuery($(this).val().trim());
+    }
+  }, 500);
 });
 
 function searchQuery(query) {
@@ -36,11 +44,10 @@ function searchQuery(query) {
   const encodedQuery = encodeURIComponent(query);
   window.history.pushState("", "", "/search/" + encodedQuery);
   document.title = "Search: " + query;
-  
 
   $("#spinner").removeClass("d-none");
   $.ajax({
-    url: "/search",
+    url: "/api/search",
     type: "POST",
     contentType: "application/json",
     data: JSON.stringify({ query: query }),
@@ -55,14 +62,6 @@ function searchQuery(query) {
     },
   });
 }
-
-const searchInterval = setInterval(() => {
-  if (searched_querys.length > 0) {
-    let query = searched_querys[searched_querys.length - 1];
-    searched_querys = [];
-    searchQuery(query);
-  }
-}, 1000);
 
 // add results to the page
 function add_results(data) {
@@ -98,6 +97,7 @@ function add_results(data) {
 }
 
 $(document).on("click", ".manga", function () {
-  let id = $(this).attr("id").split("-")[1];
+  let id = $(this).attr("id").replace("m-", "");
+  console.log(id);
   window.location.href = "/manga/" + id;
 });

@@ -1,9 +1,18 @@
-from manga import Manga, logger
 import questionary as qs
 import argparse
-from app import app
 import webbrowser
 import sys
+
+try:
+    from app import app
+    from tools import logger
+    from manga import Manga
+except ImportError:
+    from manga_dl.app import app
+    from manga_dl.tools import logger
+    from manga_dl.manga import Manga
+
+
 
 
 helps = {
@@ -32,7 +41,7 @@ def prompt(query=None):
         else:
             break
 
-    mangas_dict = {i.title: i for i in mangas}
+    mangas_dict = {f"{i+1}. {manga.title} ({manga.source.current_domain})": manga for i, manga in enumerate(mangas)}
     manga = qs.select("Select a manga:", choices=list(mangas_dict.keys())).ask()
     manga = mangas_dict[manga]
     manga.set_info()
@@ -93,6 +102,9 @@ def prompt(query=None):
 
 
 def cli(args):
+    if args.query:
+        prompt(args.query)
+    
     if args.manga:
         manga = Manga.autodetect(args.manga)
         logger.info(f"Detected manga: {manga.title}")
@@ -100,6 +112,10 @@ def cli(args):
 
         quality = max(10, min(100, args.quality))
         logger.info(f"Quality: {quality}")
+        
+        if not args.format:
+            args.format = "epub"
+            logger.info(f"Format not specified, defaulting to {args.format}")    
 
         logger.info(f"Format: {args.format}")
         logger.info(f"Dowloading {manga.title}...")
@@ -107,11 +123,11 @@ def cli(args):
             manga.create_epub(quality=quality)
         elif args.format == "pdf":
             manga.create_pdf(quality=quality)
+
         logger.info("Done!")
-    elif args.query:
-        prompt(args.query)
-    else:
-        prompt()
+        sys.exit(0)
+        
+    
 
 
 def parser():
@@ -119,7 +135,7 @@ def parser():
         description="Manga Downloader",
         formatter_class=argparse.RawTextHelpFormatter,
     )
-    parser.add_argument("mode", choices=["gui", "prompt", "cli"])
+    parser.add_argument("mode",nargs="?" , choices=["gui", "prompt", "cli"], help="Mode to run", default="prompt")
     parser.add_argument("-s", "--query", help="Search for a manga")
     parser.add_argument("-m", "--manga", help=helps["manga"])
     parser.add_argument("-c", "--chapters", help=helps["chapters"])
@@ -146,10 +162,14 @@ def parser():
 
     if args.log:
         logger.setLevel(args.log)
+    
+    
+    
+    
 
     if args.mode == "gui":
         print(f"Running on http://{args.host}:{args.port}")
-        webbrowser.open(f"http://{args.host}:{args.port}")
+        # webbrowser.open(f"http://{args.host}:{args.port}")
         app.run(host=args.host, port=args.port)
 
     elif args.mode == "prompt":

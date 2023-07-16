@@ -1,3 +1,4 @@
+import json
 from typing import Union
 from PIL import Image, ImageDraw, ImageFont
 import textwrap
@@ -6,17 +7,26 @@ import logging
 import os
 import colorama
 import re
+import math
+
+
 
 logger = logging.getLogger(os.environ.get("LOGGER_NAME", "tools"))
+_utils_path = os.path.dirname(os.path.abspath(__file__))
+error_img_path = os.path.join(_utils_path, "..", "public", "error.png")
 
+def auto_scaled_divide(value):
+    scaling_factor = math.log10(1 + abs(value)) * 1.1
+    return math.ceil(value // scaling_factor)
 
-def replace_unimportant(text: str, but: Union[list,None] = None) -> str:
+def replace_unimportant(text: str, but: Union[list, None] = None) -> str:
     # replace all characters except a-z, A-Z, 0-9, and but
     if but is None:
         but = []
     but = [re.escape(c) for c in but]
     buts = "".join(but)
     return re.sub(f"[^{buts}a-zA-Z0-9]", "", text)
+
 
 class ColorFormatter(logging.Formatter):
     def __init__(self, *args, **kwargs):
@@ -37,8 +47,28 @@ class ColorFormatter(logging.Formatter):
         record.msg = message
         return super().format(record)
 
-def create_failure_image(error_path, failure_path, url):
-    img = Image.open(error_path)
+
+# LOGGER_NAME, LOGGING_LEVEL, RETRY_COUNT
+logger_name = os.environ.get("LOGGER_NAME", "manga")
+logging_level = os.environ.get("LOGGING_LEVEL", "DEBUG")
+
+logger = logging.getLogger(logger_name)
+logger.setLevel(logging_level)
+
+file_handler = logging.FileHandler("manga.log")
+stream_handler = logging.StreamHandler()
+
+formatter = ColorFormatter(
+    "[%(levelname)s] %(asctime)s - %(message)s", datefmt="%B, %Y %I:%M %p"
+)
+file_handler.setFormatter(formatter)
+stream_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
+logger.addHandler(stream_handler)
+
+
+def create_failure_image(failure_path, url):
+    img = Image.open(error_img_path)
 
     # add url in the 80% of height and centered
     draw = ImageDraw.Draw(img)
@@ -62,7 +92,7 @@ def create_failure_image(error_path, failure_path, url):
 
     if img.mode != "RGB":
         img = img.convert("RGB")
-    
+
     img.save(failure_path)
     img.close()
     return failure_path
@@ -77,18 +107,17 @@ def safe_remove(path: str):
 
 
 def get_hash(url: str) -> str:
-    if url[-1] == "/":
-        url = url[:-1]
     return hashlib.md5(url.encode()).hexdigest()
 
 
-def get_file_name(url:str, check_extension:bool=False):
+def get_file_name(url: str, check_extension: bool = False):
     if not check_extension:
         return hashlib.md5(url.encode()).hexdigest() + ".jpg"
     else:
         _, ex = os.path.splitext(url)
         return hashlib.md5(url.encode()).hexdigest() + ex
-    
+
+
 def jpeg_compress(img_path, save_path):
     try:
         image = Image.open(img_path)
@@ -100,10 +129,22 @@ def jpeg_compress(img_path, save_path):
     except Exception as e:
         logger.exception(f"Error while compressing {img_path}")
         return None
-        
+
 
 def compress_file_path(file_path):
     name, ext = os.path.splitext(file_path)
     if not name.endswith("_compressed"):
         name += "_compressed"
     return name + ext
+
+
+def http_split(txt, sep):
+    parts = txt.strip().split(f"{sep}http")
+    url1 = parts[0]
+    rest = []
+    for p in parts[1:]:
+        rest.append(f"http{p}")
+    return [url1] + rest
+
+
+

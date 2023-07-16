@@ -5,7 +5,9 @@ class MangaNotFound(Exception):
     pass
     
     
+class SourceNotFound(Exception):
+    pass
 
-__all__ = [
-    "MangaNotFound",
-]
+
+class InvalidMangaUrl(Exception):
+    pass

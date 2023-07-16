@@ -177,13 +177,13 @@ $("#downBtn").on("click", function () {
       end_url: chapterEnd,
       quality: dquality,
       dtypes: types,
+      manga_id: mangaID,
     }),
     contentType: "application/json",
     success: function (data) {
       let msg = "";
       if (!data.success) {
         msg = `<div class="text-center">${data.message}</div>`;
-        
       } else {
         const paths = data.paths;
         let message = "";
