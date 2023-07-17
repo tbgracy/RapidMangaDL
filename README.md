@@ -32,7 +32,7 @@ manga-dl
 Here's a quick demo:
 
 <!-- video cli1.mp4 autoplay -->
-<video src='cli.mp4' autoplay muted loop></video>
+
 
 # Web-based GUI
 
@@ -47,7 +47,7 @@ manga-dl gui
 Here's a sneak peek:
 
 <!-- video gui1.mp4 autoplay -->
-<video src='web_cli.mp4' autoplay muted loop></video>
+
 
 # Command Line Interface (CLI)
 
