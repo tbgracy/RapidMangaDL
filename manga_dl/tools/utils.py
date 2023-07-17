@@ -129,7 +129,7 @@ def jpeg_compress(img_path, save_path):
         image.close()
         return save_path
     except Exception as e:
-        logger.exception(f"Error while compressing {img_path}")
+        logger.error(f"Error while compressing {img_path}: {e}")
         return None
 
 
