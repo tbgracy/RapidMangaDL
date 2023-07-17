@@ -31,7 +31,8 @@ manga-dl
 
 Here's a quick demo:
 
-![Interactive CLI Demo](https://github.com/shhossain/RapidMangaDL/raw/main/cli_demo.gif)
+<!-- video cli1.mp4 autoplay -->
+<video src='cli.mp4' autoplay muted loop></video>
 
 # Web-based GUI
 
@@ -45,7 +46,8 @@ manga-dl gui
 
 Here's a sneak peek:
 
-![Web-based GUI Demo](https://github.com/shhossain/RapidMangaDL/raw/main/web_demo.gif)
+<!-- video gui1.mp4 autoplay -->
+<video src='web_cli.mp4' autoplay muted loop></video>
 
 # Command Line Interface (CLI)
 
