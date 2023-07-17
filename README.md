@@ -64,7 +64,7 @@ manga-dl cli -m https://manganato.com/manga-az963307 -c 1-10 -f epub -q 90
 You can use the Command Line Interface (CLI) with arguments to initiate a download. Here's a breakdown of the available options:
 
 ```bash
-usage: manga-dl [-h] [-s QUERY] [-m MANGA] [-c CHAPTERS] [-ex EXCLUDE] [-f {epub,pdf}] [-q QUALITY] [--host HOST] [-p PORT] [-l {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [mode]
+usage: manga-dl [-h] [-s QUERY] [-m MANGA] [-ss SOURCE] [-c CHAPTERS] [-ex EXCLUDE] [-f {epub,pdf}] [-q QUALITY] [--host HOST] [-p PORT]  [mode]
 
 positional arguments:
   mode                  Mode to run (choices: gui, prompt, cli)
@@ -75,6 +75,8 @@ optional arguments:
                         Search for a manga
   -m MANGA, --manga MANGA
                         Manga to download (Examples: -m https://manganato.com/manga-az963307 -m manga-id -m id -m manga-title (not reliable))
+  -ss SOURCE, --source SOURCE
+                        Source to download from (Examples: -ss manganato -ss mangakakalot -ss manganelo -ss mangasee123) 
   -c CHAPTERS, --chapters CHAPTERS
                         Chapters to download (Examples: -c 1-10 -c 1,2,3 -c 1-10, 20-30 -c 1-10, 20-30, 40, 50, 60-70)
   -ex EXCLUDE, --exclude EXCLUDE
@@ -117,6 +119,7 @@ manga.set_info()
 
 print(manga.title)
 ```
+
 
 Selecting chapters
 
