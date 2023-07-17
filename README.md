@@ -31,8 +31,7 @@ manga-dl
 
 Here's a quick demo:
 
-<!-- video cli.mp4 autoplay -->
-https://github.com/shhossain/RapidMangaDL/assets/80335059/4c4cd91f-f0f9-4349-87ca-70af004be874
+![CLI](https://github.com/shhossain/RapidMangaDL/raw/main/cli.gif)
 
 
 
@@ -48,8 +47,7 @@ manga-dl gui
 
 Here's a sneak peek:
 
-<!-- video gui.mp4 autoplay -->
-https://github.com/shhossain/RapidMangaDL/assets/80335059/a4fc4d2e-0092-44dc-abea-77dd497ee47c
+![WEB DEMO](https://github.com/shhossain/RapidMangaDL/raw/main/web_gui.gif)
 
 
 
