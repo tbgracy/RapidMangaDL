@@ -1,15 +1,17 @@
+import os
 import questionary as qs
 import argparse
 import webbrowser
 import sys
+import logging
 
 try:
     from app import app
-    from tools import logger
+    from tools import logger, run_with_cloudflared
     from manga import Manga
 except ImportError:
     from manga_dl.app import app
-    from manga_dl.tools import logger
+    from manga_dl.tools import logger, run_with_cloudflared
     from manga_dl.manga import Manga
 
 
@@ -149,8 +151,9 @@ def parser():
     parser.add_argument(
         "-q", "--quality", type=int, default=100, help="Quality of images 10-100"
     )
-    parser.add_argument("--host", default="127.0.0.1", help="Host address of server")
+    parser.add_argument("--host", default="0.0.0.0", help="Host address of server")
     parser.add_argument("-p", "--port", default=80, type=int, help="Port of server")
+    parser.add_argument("--share", action="store_true", help="Share the server in public")
     parser.add_argument(
         "-l",
         "--log",
@@ -163,14 +166,33 @@ def parser():
     if args.log:
         logger.setLevel(args.log)
     
-    
-    
-    
 
     if args.mode == "gui":
-        print(f"Running on http://{args.host}:{args.port}")
-        webbrowser.open(f"http://{args.host}:{args.port}")
+        try:
+            log = logging.getLogger('werkzeug')
+            log.setLevel(logging.ERROR)
+            fcli = sys.modules['flask.cli']
+            fcli.show_server_banner = lambda *x: None # type: ignore
+        except Exception as e:
+            logger.error(f"Erorr occured while disabling flask logs {e}")
+            logger.info("Continuing without disabling flask logs")
+            
+        if args.share:
+           try:
+                run_with_cloudflared(app)
+           except Exception as e:
+                logger.error(f"Error occured while running with cloudflared {e}")
+                logger.info("Running without cloudflared")
+        
+        host = args.host
+        if host == "0.0.0.0":
+            host = "127.0.0.1"
+        
+        print("   Ctrl+C to exit")
+        print(f" * Running on http://{host}:{args.port} (Private)")
+        webbrowser.open(f"http://{host}:{args.port}")
         app.run(host=args.host, port=args.port)
+        
 
     elif args.mode == "prompt":
         prompt()

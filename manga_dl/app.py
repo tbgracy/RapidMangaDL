@@ -12,6 +12,7 @@ from multiprocessing import Value
 from fake_headers import Headers
 from urllib.parse import urlparse
 
+
 headers = Headers().generate()
 
 app = Flask(__name__, static_folder="public")
@@ -239,4 +240,5 @@ def img_url(url):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=80)
+    # app.run(host="0.0.0.0", port=80)
+    app.run()
