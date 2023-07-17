@@ -1,5 +1,4 @@
 import pprint
-from typing import Union
 from urllib.parse import urlparse
 
 import requests
@@ -206,7 +205,7 @@ class BaseSource:
         self.url = url
         self.temp_dir = os.environ.get("TEMP_DIR", "tmp")
         self.headers: dict = Headers().generate()
-    
+
     @property
     def current_domain(self) -> str:
         return urlparse(self.url).netloc
@@ -262,7 +261,6 @@ class BaseSource:
 class MangaNato(BaseSource):
     domain = "manganato.com"
     alternate_domains = ["chapmanganato.com"]
-    
 
     def __init__(self, url: str):
         url = MangaNato.valid_url(url)
@@ -307,16 +305,16 @@ class MangaNato(BaseSource):
         path = os.path.join(os.environ.get("TEMP_DIR", "tmp"), filename)
         if os.path.exists(path):
             try:
-                with open(path, 'r') as f:
+                with open(path, "r") as f:
                     results = json.load(f)
                     if not results:
-                        raise Exception(f"No data found in the `{query}` cache in {path}")
+                        raise Exception(
+                            f"No data found in the `{query}` cache in {path}"
+                        )
                 return results
             except Exception as e:
                 logger.error(f"Failed to load `{query}` cache from {path}")
-        
-        
-        
+
         results = []
         try:
             res = requests.post(url, headers=headers, data=data)
@@ -520,10 +518,12 @@ class ONEkissmanga(BaseSource):
         path = os.path.join(os.environ.get("TEMP_DIR", "tmp"), filename)
         if os.path.exists(path):
             try:
-                with open(path, 'r') as f:
+                with open(path, "r") as f:
                     results = json.load(f)
                     if not results:
-                        raise Exception(f"No data found in the `{query}` cache in {path}")
+                        raise Exception(
+                            f"No data found in the `{query}` cache in {path}"
+                        )
                 return results
             except Exception as e:
                 logger.error(f"Failed to load `{query}` cache from {path}: {e}")
@@ -582,7 +582,6 @@ class ONEkissmanga(BaseSource):
 
             # Get the cover URL
             cover_url = soup.find("div", class_="summary_image").find("img")["src"]  # type: ignore
-            print("Cover URL: ", cover_url)
 
             post_contents = soup.select(".post-content_item .summary-content")
             rating_rank = post_contents[0].text.strip().split()[1]
@@ -647,9 +646,7 @@ class ONEkissmanga(BaseSource):
             imgs = [i.get("src") for i in imgs]  # type: ignore
 
         except Exception as e:
-            logger.error(
-                f"Error getting chapter images for {chapter_url}: {e}"
-            )
+            logger.error(f"Error getting chapter images for {chapter_url}: {e}")
             imgs = []
 
         return imgs

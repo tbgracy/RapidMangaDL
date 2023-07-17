@@ -1,5 +1,3 @@
-
-
 try:
     from manga import Manga, Chapter
     from tools import Downloader
@@ -7,7 +5,7 @@ except ImportError:
     from manga_dl.manga import Manga, Chapter
     from manga_dl.tools import Downloader
 
-import os 
+import os
 import json
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from multiprocessing import Value
@@ -138,7 +136,6 @@ def search():
     if error:
         data["error"] = error
 
-
     return jsonify(data)
 
 
@@ -160,21 +157,19 @@ def manga_download():
     if end_url.endswith("/"):
         end_url = end_url[:-1]
 
-
     quality = int(quality)
-    print("Download:",manga_id, start_url, end_url, quality, dtypes)
+    print("Download:", manga_id, start_url, end_url, quality, dtypes)
 
     manga = Manga.from_id(manga_id)
     manga.set_info()
-    
+
     url = manga.url
     if url.endswith("/"):
         url = url[:-1]
-    
+
     start_url = f"{url}/{start_url.split('/')[-1]}"
     end_url = f"{url}/{end_url.split('/')[-1]}"
-    
-    
+
     manga.select_chapters(f"{start_url}-{end_url}")
 
     data = {"success": True, "paths": []}
@@ -222,10 +217,10 @@ def manga_chapter_img():
         "success": True,
         "imgs": [],
     }
-    
+
     manga = Manga.from_id(manga_id)
     manga.set_info()
-    imgs = manga.source.get_chapter_img_urls("/"+chapter_url.split("/")[-1])
+    imgs = manga.source.get_chapter_img_urls("/" + chapter_url.split("/")[-1])
 
     sdata["imgs"] = imgs
     return jsonify(sdata)
@@ -235,8 +230,8 @@ def manga_chapter_img():
 def img_url(url):
     url = url_decode(url)
     parse = urlparse(url)
-    headers['referer'] = f"{parse.scheme}://{parse.netloc}"
-    
+    headers["referer"] = f"{parse.scheme}://{parse.netloc}"
+
     urlpath = Downloader.download_one(url, headers=headers, download_dir=temp_dir)
 
     with open(urlpath.filepath, "rb") as f:

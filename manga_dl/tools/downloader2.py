@@ -14,11 +14,11 @@ from .utils import (
     jpeg_compress,
     safe_remove,
     auto_scaled_divide,
+    tqdm
 )
 from .models import URLFile
 import asyncio
 import aiohttp
-from tqdm.auto import tqdm
 
 import platform
 

@@ -5,7 +5,6 @@ from ebooklib import epub
 import re
 import requests
 import os
-from tqdm.auto import tqdm
 import shutil
 
 from PIL import Image
@@ -24,7 +23,8 @@ try:
         URLFile,
         replace_unimportant,
         logger,
-        http_split
+        http_split,
+        tqdm
     )
 
     from tools.exceptions import MangaNotFound

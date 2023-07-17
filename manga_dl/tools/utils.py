@@ -9,6 +9,24 @@ import re
 import math
 
 
+
+def in_notebook():
+    try:
+        from IPython import get_ipython # type: ignore
+        if 'IPKernelApp' not in get_ipython().config:  # pragma: no cover
+            return False
+    except ImportError:
+        return False
+    except AttributeError:
+        return False
+    return True
+
+if in_notebook():
+    from tqdm.notebook import tqdm
+else:
+    from tqdm import tqdm
+
+
 logger = logging.getLogger(os.environ.get("LOGGER_NAME", "tools"))
 _utils_path = os.path.dirname(os.path.abspath(__file__))
 error_img_path = os.path.join(os.path.dirname(_utils_path), "public", "error.png")
