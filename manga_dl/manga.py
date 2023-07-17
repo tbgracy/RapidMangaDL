@@ -41,7 +41,8 @@ except ImportError:
         URLFile,
         replace_unimportant,
         logger,
-        http_split
+        http_split,
+        tqdm
     )
 
     from manga_dl.tools.exceptions import MangaNotFound
