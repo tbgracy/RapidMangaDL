@@ -4,7 +4,6 @@ import logging
 from multiprocessing import Manager
 import hashlib
 import aiofiles
-from alive_progress import alive_bar
 import requests
 from fake_headers import Headers
 import time
@@ -19,6 +18,7 @@ from .utils import (
 from .models import URLFile
 import asyncio
 import aiohttp
+from tqdm.auto import tqdm
 
 import platform
 
@@ -99,12 +99,12 @@ class Downloader:
                 print(f"Failed to download {url}: {e}")
                 self.failed_urls.append(url)
                 return
-        pbar()
+        pbar.update(1)
         self.share_pbar()
         self.total_urls -= 1
 
     async def download_all(self):
-        with alive_bar(total=len(self.urls), bar="smooth", title="Downloading") as pbar:
+        with tqdm(total=len(self.urls), desc="Downloading") as pbar:
             timeout = aiohttp.ClientTimeout(total=auto_scaled_divide(self.total_urls))
             async with aiohttp.ClientSession(
                 headers=self.headers, timeout=timeout

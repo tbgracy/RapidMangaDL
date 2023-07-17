@@ -184,8 +184,7 @@ def exists(func):
                         raise Exception(f"Error loading cache from {path}")
                     return data
             except Exception as e:
-                logger.error(f"Error loading info from {path}")
-                logger.error(e)
+                logger.error(f"Error loading info from {path}: {e}")
                 safe_remove(path)
         else:
             data = func(*args, **kwargs)
@@ -194,8 +193,7 @@ def exists(func):
                     with open(path, "w") as f:
                         json.dump(data, f)
                 except Exception as e:
-                    logger.error(f"Error saving info to {path}")
-                    logger.error(e)
+                    logger.error(f"Error saving info to {path}: {e}")
                     safe_remove(path)
 
             return data
@@ -460,7 +458,7 @@ class MangaNato(BaseSource):
             return data
 
         except Exception as e:
-            logger.error(e, exc_info=True)
+            logger.error(f"Error getting manga info for {self.url}: {e}")
             raise MangaNotFound(f"Manga not found: {self.url}")
 
     @exists
@@ -477,7 +475,7 @@ class MangaNato(BaseSource):
 
         except Exception as e:
             logger.error(
-                f"Error getting chapter images for {chapter_url}", exc_info=True
+                f"Error getting chapter images for {chapter_url}: {e}",
             )
             imgs = []
 
@@ -528,7 +526,7 @@ class ONEkissmanga(BaseSource):
                         raise Exception(f"No data found in the `{query}` cache in {path}")
                 return results
             except Exception as e:
-                logger.error(f"Failed to load `{query}` cache from {path}")
+                logger.error(f"Failed to load `{query}` cache from {path}: {e}")
 
         results = []
         try:
@@ -632,7 +630,7 @@ class ONEkissmanga(BaseSource):
             }
 
         except Exception as e:
-            logger.error(f"Error getting manga info for {self.url}", exc_info=True)
+            logger.error(f"Error getting manga info for {self.url}: {e}")
             data = {}
 
         return data
@@ -650,7 +648,7 @@ class ONEkissmanga(BaseSource):
 
         except Exception as e:
             logger.error(
-                f"Error getting chapter images for {chapter_url}", exc_info=True
+                f"Error getting chapter images for {chapter_url}: {e}"
             )
             imgs = []
 

@@ -47,10 +47,7 @@ def search_query(query):
 @app.route("/manga/<string:manga_id>", methods=["GET"])
 def manga(manga_id):
     manga = Manga.from_id(manga_id)
-    try:
-        manga.set_info()
-    except Exception as e:
-        logger.error(e, exc_info=True)
+    manga.set_info()
 
     for chapter in manga.chapters:
         if chapter[0].endswith("/"):
@@ -74,10 +71,7 @@ def url_decode(s):
 @app.route("/manga/<string:manga_id>/<string:chapter>", methods=["GET"])
 def manga_chapters(manga_id, chapter):
     manga = Manga.from_id(manga_id)
-    try:
-        manga.set_info()
-    except Exception as e:
-        logger.error(e, exc_info=True)
+    manga.set_info()
 
     chapter_url = None
     chapter_idx = -1
@@ -134,7 +128,7 @@ def search():
     except Exception as e:
         suc = False
         error = "Unknown error"
-        logger.error(e, exc_info=True)
+        logger.error(f"Error getting search results: {e}")
 
     data = {
         "success": suc,
@@ -168,7 +162,6 @@ def manga_download():
 
 
     quality = int(quality)
-
     print("Download:",manga_id, start_url, end_url, quality, dtypes)
 
     manga = Manga.from_id(manga_id)
@@ -195,7 +188,7 @@ def manga_download():
             paths.append(os.path.abspath(path))
         data["paths"] = paths
     except Exception as e:
-        logger.error(e, exc_info=True)
+        logger.error(f"Error downloading manga: {e}")
         data["success"] = False
         data["message"] = "Unknown error"
 

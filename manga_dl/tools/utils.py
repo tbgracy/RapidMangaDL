@@ -1,4 +1,3 @@
-import json
 from typing import Union
 from PIL import Image, ImageDraw, ImageFont
 import textwrap
@@ -10,14 +9,15 @@ import re
 import math
 
 
-
 logger = logging.getLogger(os.environ.get("LOGGER_NAME", "tools"))
 _utils_path = os.path.dirname(os.path.abspath(__file__))
 error_img_path = os.path.join(os.path.dirname(_utils_path), "public", "error.png")
 
+
 def auto_scaled_divide(value):
     scaling_factor = math.log10(1 + abs(value)) * 0.5
     return math.ceil(value // scaling_factor)
+
 
 def replace_unimportant(text: str, but: Union[list, None] = None) -> str:
     # replace all characters except a-z, A-Z, 0-9, and but
@@ -59,7 +59,7 @@ file_handler = logging.FileHandler("manga.log")
 stream_handler = logging.StreamHandler()
 
 formatter = ColorFormatter(
-    "[%(levelname)s] %(asctime)s - %(message)s", datefmt="%B, %Y %I:%M %p"
+    "[%(asctime)s | %(filename)s:%(lineno)s (%(funcName)s)] %(levelname)s - %(message)s", datefmt="%I:%M %p"
 )
 file_handler.setFormatter(formatter)
 stream_handler.setFormatter(formatter)
@@ -103,7 +103,7 @@ def safe_remove(path: str):
         try:
             os.remove(path)
         except Exception as e:
-            logger.error(f"Failed to delete {path}", exc_info=True)
+            logger.error(f"Failed to delete {path}: {e}")
 
 
 def get_hash(url: str) -> str:
@@ -145,5 +145,3 @@ def http_split(txt, sep):
     for p in parts[1:]:
         rest.append(f"http{p}")
     return [url1] + rest
-
-

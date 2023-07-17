@@ -5,7 +5,7 @@ from ebooklib import epub
 import re
 import requests
 import os
-from alive_progress import alive_bar
+from tqdm.auto import tqdm
 import shutil
 
 from PIL import Image
@@ -419,7 +419,7 @@ class Manga:
             Image.open(path).close()
             return True, file
         except Exception as e:
-            logger.error(f"Manga(check_img): Failed to open {path}", exc_info=True)
+            logger.error(f"Manga(check_img): Failed to open {path}: {e}")
             return False, file
 
     def check_imgs(self, files):
@@ -427,14 +427,14 @@ class Manga:
         failure = []
         with cf.ThreadPoolExecutor() as executor:
             futures = [executor.submit(self.check_img, file) for file in files]
-            with alive_bar(len(futures), title="Checking images") as bar:
+            with tqdm(total=len(futures), desc="Checking images") as bar:
                 for future in cf.as_completed(futures):
                     success_, file = future.result()
                     if success_:
                         success.append(file)
                     else:
                         failure.append(file)
-                    bar()
+                    bar.update(1)
         return success, failure
 
     def remove_files(self, filenames):
@@ -451,9 +451,9 @@ class Manga:
 
         with cf.ThreadPoolExecutor() as executor:
             futures = [executor.submit(i.get_chapter_imgs) for i in self.chapters]
-            with alive_bar(len(futures), title="Getting chapter Imgs") as bar:
+            with tqdm(total=len(futures), desc="Getting Chapter Imgs") as bar:
                 for future in cf.as_completed(futures):
-                    bar()
+                    bar.update(1)
 
         img_urls = []
         img_url_to_chapter: dict[str, Chapter] = {}
@@ -508,14 +508,14 @@ class Manga:
                     executor.submit(self.lower_quality, i, quality)
                     for i in img_filenames_chapter.keys()
                 ]
-                with alive_bar(
-                    len(futures), title=f"Lowering quality to {quality}"
+                with tqdm(
+                    total=len(futures), decc=f"Lowering quality to {quality}"
                 ) as bar:
                     for future in cf.as_completed(futures):
                         filename, qfilename = future.result()
                         chapter = img_filenames_chapter[filename]
                         chapter.add_qfile((filename, qfilename))
-                        bar()
+                        bar.update(1)
 
             for chapter in self.chapters:
                 chapter.order_qfiles()
@@ -557,11 +557,11 @@ class Manga:
 
             nitems = items.copy()
             items = []
-            with alive_bar(total=len(items), title="Creating PDF chapters") as bar:
+            with tqdm(total=len(items), desc="Creating PDF chapters") as bar:
                 with cf.ThreadPoolExecutor() as executor:
                     for item in executor.map(create_chapter, nitems):
                         items.append(item)
-                        bar()
+                        bar.update(1)
 
         return items
 

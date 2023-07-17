@@ -37,7 +37,7 @@ class FileManager:
             if os.path.exists(path):
                 os.remove(path)
         except Exception as e:
-            logger.error(f"Failed to delete {path}")
+            logger.error(f"Failed to delete {path}: {e}")
     
     def convert_to_jpeg(self, path: str):
         save_path = jpeg_file(path)
@@ -52,7 +52,7 @@ class FileManager:
             self.save_queue.put((path, save_path))
             return save_path
         except Exception as e:
-            logger.error(f"Failed to convert {path} to jpeg", exc_info=True)
+            logger.error(f"Failed to convert {path} to jpeg: {e}")
             self.save_queue.put((path, path))
             return path
         
