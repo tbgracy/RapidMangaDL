@@ -33,8 +33,6 @@ Here's a quick demo:
 
 ![CLI](https://github.com/shhossain/RapidMangaDL/raw/main/cli.gif)
 
-
-
 # Web-based GUI
 
 The Web-based GUI offers a graphical interface to interact with the application. You can easily search for manga, select chapters, and initiate downloads.
@@ -48,8 +46,6 @@ manga-dl gui
 Here's a sneak peek:
 
 ![WEB DEMO](https://github.com/shhossain/RapidMangaDL/raw/main/web_gui.gif)
-
-
 
 # Command Line Interface (CLI)
 
@@ -85,4 +81,75 @@ optional arguments:
   -p PORT, --port PORT  Port of the server (default: 80)
   -l {DEBUG,INFO,WARNING,ERROR,CRITICAL}, --log {DEBUG,INFO,WARNING,ERROR,CRITICAL}
                         Set the log level (choices: DEBUG, INFO, WARNING, ERROR, CRITICAL)
+```
+
+# Python API
+
+You can also use the Python API to interact with the application.
+
+## Selecting a manga
+
+```python
+from manga_dl import Manga
+
+manga = Manga("https://manganato.com/manga-az963307")
+manga.set_info()
+
+print(manga.title)
+print(manga.author)
+print(manga.description)
+
+```
+
+### Selecting from search results
+
+```python
+
+mangas = Manga.search("one piece")
+manga = mangas[0]
+manga.set_info()
+
+print(manga.title)
+```
+
+## Selecting chapters
+
+```python
+
+manga.select_chapters("1-10")
+# or
+manga.select_chapters("1,2,3,4,5,6,7,8,9,10")
+# or
+manga.select_chapters("1-10, 20-30, 40, 50, 60-70")
+# or
+managa.select_chapters("Chapter 1, Chapter 2")
+# or
+managa.select_chapters("https://manganato.com/manga-az963307/chapter-1-https://manganato.com/manga-az963307/chapter-2")
+
+# exclude chapters
+manga.select_chapters("1-10", exclude="5") # same rules apply for exclude
+```
+
+## Downloading
+
+```python
+manga.create_epub()
+# or
+manga.create_pdf()
+
+# specify quality
+manga.create_epub(quality=70) # Default is 85(unchangable)
+
+# specify output directory
+manga.create_epub(path="C:/Users/username/Desktop")
+```
+
+## Luanching the server
+
+```python
+from manga_dl import app
+
+app.run()
+# or
+app.run(host="localhost", port=80) # app is a Flask app
 ```

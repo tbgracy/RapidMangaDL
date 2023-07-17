@@ -7,32 +7,7 @@ import os
 import colorama
 import re
 import math
-
-
-
-def in_notebook():
-    try:
-        from IPython import get_ipython # type: ignore
-        if 'IPKernelApp' not in get_ipython().config:  # pragma: no cover
-            return False
-    except ImportError:
-        return False
-    except AttributeError:
-        return False
-    return True
-
-def set_tqdm_in_colab():
-    try:
-        from google.colab import output # type: ignore
-        output.enable_custom_widget_manager()
-    except ImportError:
-        return False
-
-if in_notebook():
-    from tqdm.notebook import tqdm
-    set_tqdm_in_colab()
-else:
-    from tqdm import tqdm
+from tqdm.auto import tqdm
 
 
 logger = logging.getLogger(os.environ.get("LOGGER_NAME", "tools"))
@@ -85,7 +60,8 @@ file_handler = logging.FileHandler("manga.log")
 stream_handler = logging.StreamHandler()
 
 formatter = ColorFormatter(
-    "[%(asctime)s | %(filename)s:%(lineno)s (%(funcName)s)] %(levelname)s - %(message)s", datefmt="%I:%M %p"
+    "[%(asctime)s | %(filename)s:%(lineno)s (%(funcName)s)] %(levelname)s - %(message)s",
+    datefmt="%I:%M %p",
 )
 file_handler.setFormatter(formatter)
 stream_handler.setFormatter(formatter)

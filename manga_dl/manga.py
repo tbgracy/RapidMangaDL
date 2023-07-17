@@ -11,8 +11,6 @@ from PIL import Image
 from fuzzywuzzy import fuzz
 
 
-# add tools to sys.path
-
 try:
     from tools import (
         Downloader,
@@ -24,7 +22,7 @@ try:
         replace_unimportant,
         logger,
         http_split,
-        tqdm
+        tqdm,
     )
 
     from tools.exceptions import MangaNotFound
@@ -42,13 +40,12 @@ except ImportError:
         replace_unimportant,
         logger,
         http_split,
-        tqdm
+        tqdm,
     )
 
     from manga_dl.tools.exceptions import MangaNotFound
     from manga_dl.tools.sources import get_source, sources
     from manga_dl.tools.sources import Chapter
-    
 
 
 os.environ["TEMP_DIR"] = os.environ.get("TEMP_DIR", "tmp")
@@ -56,6 +53,23 @@ os.environ["TEMP_DIR"] = os.environ.get("TEMP_DIR", "tmp")
 
 class Manga:
     def __init__(self, url: str):
+        """
+        Manga object
+
+        Atributes:
+        ----------
+        url: str -> url of the manga
+        source: Source -> Source object (see tools.sources.BaseSource)
+        id: str -> id of the manga
+        title: str -> title of the manga
+        cover_url: str -> url of the cover image
+        alternative_title: str -> alternative title of the manga
+        
+        >>> manga = Manga("https://manganelo.com/manga/ta918772")
+        >>> manga.set_info() # set manga info
+        >>> manga.title
+        """
+
         self.url = url
         self.source = get_source(url)
         self.id = self.source.id
@@ -91,15 +105,29 @@ class Manga:
 
     @staticmethod
     def search(query: str) -> list["Manga"]:
+        """
+        Search for manga in all sources
+
+        Parameters:
+        -----------
+        query: str -> query to search for
+        
+        Returns:
+        --------
+        list[Manga] -> list of Manga objects
+        """
+        
         mangas = []
         with cf.ThreadPoolExecutor() as executor:
             futures = [executor.submit(source.search, query) for source in sources]
             for future in cf.as_completed(futures):
                 results = future.result()
                 mangas.extend(results)
-                
+
         mangas = [Manga.from_search(manga) for manga in mangas]
-        mangas.sort(key=lambda x: fuzz.ratio(x.title.lower(), query.lower()), reverse=True)
+        mangas.sort(
+            key=lambda x: fuzz.ratio(x.title.lower(), query.lower()), reverse=True
+        )
         return mangas
 
     @classmethod
@@ -143,10 +171,6 @@ class Manga:
         if isinstance(inp, str):
             if "http" in inp:
                 return cls(inp)
-            elif "manga-" in inp:
-                return cls.from_id(inp)
-            elif inp[2:].isdigit():
-                return cls.from_id(f"manga-{inp}")
             else:
                 most_likely = None
                 mangas = Manga.search(inp)
@@ -167,8 +191,6 @@ class Manga:
             return cls.from_json(inp)
         elif isinstance(inp, list):
             return cls.from_json(inp[0])
-        elif isinstance(inp, int):
-            return cls.from_id(f"manga-{inp}")
         else:
             raise MangaNotFound(f"Could not find manga with: {inp}")
 
@@ -252,7 +274,9 @@ class Manga:
         self.status = data.get("status", "") or "Status not available"
         self.genre = data.get("genre", "") or "No genres given"
         self.description = data.get("description", "") or "No description given"
-        self.chapters = [Chapter.from_json(chapter) for chapter in data.get("chapters", [])]
+        self.chapters = [
+            Chapter.from_json(chapter) for chapter in data.get("chapters", [])
+        ]
         self.total_chapters = data.get("total_chapters", len(self.chapters))
         self.updated = data.get("updated", "") or "No update date given"
         self.views = data.get("views", "") or "No views found"
@@ -281,8 +305,32 @@ class Manga:
     def chapters_exists(
         self, inputs, chapters: list[Chapter]
     ) -> dict[Union[str, int], list[Chapter]]:
+        """
+        Checks if the given inputs are valid chapters
+
+        Parameters
+        ----------
+        inputs : Union[str, int, list[str], list[int]]
+            The inputs to check
+        chapters : list[Chapter]
+            The chapters to check against
+
+        Returns
+        -------
+        dict[Union[str, int], list[Chapter]]
+            A dict with the inputs as keys and the chapters as values
+
+        Examples
+            >>> chapters_exists("1", manga.chapters)
+            >>> chapters_exists(["1", "2"], manga.chapters)
+        """
+        
+        if inputs is None:
+            return {}
+
         if isinstance(inputs, str):
             inputs = [inputs]
+        
 
         chapter_url_dict = {i.url: i for i in chapters}
         chapters_title_dict = {i.title: i for i in chapters}
@@ -303,7 +351,7 @@ class Manga:
 
                 elif "," in i:
                     if "http" in i:
-                        vals = http_split(i, ',')
+                        vals = http_split(i, ",")
                     else:
                         ii = replace_unimportant(i, but=["-", ","])
                         vals = [a.strip() for a in ii.split(",")]
@@ -315,7 +363,7 @@ class Manga:
                         ii = replace_unimportant(i, but=["-", ","])
                         vals = [i.strip() for i in ii.split("-")]
                     else:
-                        vals = http_split(i, '-')
+                        vals = http_split(i, "-")
 
                     schapters = self.chapters_exists(vals, chapters)
                     ct1 = chapters.count(schapters[vals[0]][0])
@@ -357,6 +405,25 @@ class Manga:
         selected: Union[str, int, Chapter, None],
         exclude: Union[str, int, Chapter, None] = None,
     ):
+        """
+        Selects the chapters to download
+
+        Parameters
+        ----------
+        selected : Union[str, int, Chapter, None] The chapters to download
+        exclude : Union[str, int, Chapter, None], optional The chapters to exclude
+
+        Examples
+        --------
+            >>> manga.select_chapters("1")
+            >>> manga.select_chapters(["1", "2"])
+            >>> manga.select_chapters("1-5")
+            >>> manga.select_chapters("1,2,3")
+            >>> manga.select_chapters("1,2,3-5", exclude="4")
+            >>> manga.select_chapters("1,2,3-5", exclude="4,5")
+            >>> manga.select_chapters("https://manganato.com/manga-aa123456/chapter-1-https://manganato.com/manga-aa123456/chapter-2")
+        """
+
         self.set_info()
 
         selected_chapters = self.chapters_exists(selected, self.chapters)
@@ -567,6 +634,18 @@ class Manga:
         return items
 
     def create_epub(self, quality=None, path: str = ""):
+        """
+        Create an epub file of the novel.
+
+        Parameters
+        ----------
+        quality : int, optional
+            The quality of the images in the epub file. If None, the original quality is used. Defaults to None.
+        path : str, optional
+            The path to save the epub file to. If None, the file is saved to the current working directory. Defaults to current working directory.
+
+        """
+
         book = epub.EpubBook()
 
         self._quality = quality
@@ -617,6 +696,17 @@ class Manga:
         return path
 
     def create_pdf(self, quality=None, path: str = ""):  # type: ignore
+        """
+        Create a pdf file of the novel.
+
+        Parameters
+        ----------
+        quality : int, optional
+            The quality of the images in the pdf file. If None, the original quality is used. Defaults to None.
+        path : str, optional
+            The path to save the pdf file to. If None, the file is saved to the current working directory. Defaults to current working directory.
+        """
+
         pdf = PDF()
 
         self._quality = quality
