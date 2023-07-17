@@ -347,6 +347,15 @@ class Manga:
                 selected_chapters[i] = []
 
             if isinstance(i, str):
+                if i.startswith("latest") or i.startswith("last"):
+                    ii = i.replace("latest", "").replace("last", "")
+                    ii = replace_unimportant(ii)
+                    if ii.isdigit():
+                        int_ii = int(ii)
+                        selected_chapters[i] = chapters[-int_ii:]
+                    else:
+                        selected_chapters[i] = chapters[-5:]
+                    
                 if i.count("http") == 1:
                     if i in chapter_url_dict:
                         selected_chapters[i] = [chapter_url_dict[i]]

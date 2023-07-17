@@ -19,7 +19,7 @@ Select specific chapters or a custom range for downloading.
 Choose between downloading the manga in EPUB or PDF format.
 Customize the quality of the images (10 to 100).
 
-# Interactive CLI
+# Interactive CLI 
 
 The Interactive CLI mode provides a user-friendly prompt to search for a manga, select chapters, specify the format, and set image quality.
 
@@ -33,7 +33,7 @@ Here's a quick demo:
 
 ![CLI](https://github.com/shhossain/RapidMangaDL/raw/main/cli.gif)
 
-# Web-based GUI
+# Web-based GUI (Graphical User Interface)
 
 The Web-based GUI offers a graphical interface to interact with the application. You can easily search for manga, select chapters, and initiate downloads.
 
@@ -67,20 +67,29 @@ You can use the Command Line Interface (CLI) with arguments to initiate a downlo
 usage: manga-dl [-h] [-s QUERY] [-m MANGA] [-ss SOURCE] [-c CHAPTERS] [-ex EXCLUDE] [-f {epub,pdf}] [-q QUALITY] [--host HOST] [-p PORT]  [mode]
 
 positional arguments:
-  mode                  Mode to run (choices: gui, prompt, cli)
+  mode                  Mode to run (choices: gui, prompt, cli) [Web ui, Interactive CLI, CLI]
 
 optional arguments:
   -h, --help            show this help message and exit
   -s QUERY, --query QUERY
-                        Search for a manga
+                        Search for a manga (This will move to interactive mode with the search results)
   -m MANGA, --manga MANGA
-                        Manga to download (Examples: -m https://manganato.com/manga-az963307 -m manga-id -m id -m manga-title (not reliable))
+                        Manga to download 
+                        Examples:
+                        -m https://manganato.com/manga-az963307 (most reliable)
+                        -m manga-id (from web gui something like this managato_uq971673)
+                        -m manga-title (Match by similarity, not relaiable)
   -ss SOURCE, --source SOURCE
-                        Source to download from (Examples: -ss manganato -ss mangakakalot -ss manganelo -ss mangasee123) 
+                        Source to download from (Examples: -ss manganato | -ss mangakakalot | -ss manganelo | -ss mangasee123) 
   -c CHAPTERS, --chapters CHAPTERS
-                        Chapters to download (Examples: -c 1-10 -c 1,2,3 -c 1-10, 20-30 -c 1-10, 20-30, 40, 50, 60-70)
+                        Chapters to download
+                          Examples: 
+                          -c 1-10 | -c 1,2,3 | -c 1-10, 20-30 | -c 1-10, 20-30, 40, 50, 60-70 | -c latest 10 | -c Chapter 1, Chapter 2 |
+                          -c https://manganato.com/manga-az963307/chapter-1-https://manganato.com/manga-az963307/chapter-2
+                          -c last (last 5 chapters)
+                          
   -ex EXCLUDE, --exclude EXCLUDE
-                        Chapters to exclude (Examples: -ex 1-10 -ex 1,2,3 -ex 1-10, 20-30 -ex 1-10, 20-30, 40, 50, 60-70)
+                        Chapters to exclude (same rules apply as --chapters)
   -f {epub,pdf}, --format {epub,pdf}
                         Format to download (choices: epub, pdf)
   -q QUALITY, --quality QUALITY

@@ -20,7 +20,7 @@ from pytimedinput import timedInput
 
 helps = {
     "manga": "Manga to download\nExamples: \n\t -m https://manganato.com/manga-az963307\n\t -m manga-id\n\t -m id\n\t -m manga-title (not relaible)",
-    "chapters": "Chapters to download\nExamples: \n\t -c 1-10\n\t -c 1,2,3\n\t -c 1-10, 20-30\n\t -c 1-10, 20-30, 40, 50, 60-70",
+    "chapters": "Chapters to download\nExamples: \n\t -c 1-10\n\t -c 1,2,3\n\t -c 1-10, 20-30\n\t -c 1-10, 20-30, 40, 50, 60-70\n\t -c latest 10",
     "exclude": "Chapters to exclude\nExamples: \n\t -ex 1-10\n\t -ex 1,2,3\n\t -ex 1-10, 20-30\n\t -ex 1-10, 20-30, 40, 50, 60-70",
 }
 
