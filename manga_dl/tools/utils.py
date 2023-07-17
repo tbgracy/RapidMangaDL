@@ -21,8 +21,16 @@ def in_notebook():
         return False
     return True
 
+def set_tqdm_in_colab():
+    try:
+        from google.colab import output # type: ignore
+        output.enable_custom_widget_manager()
+    except ImportError:
+        return False
+
 if in_notebook():
     from tqdm.notebook import tqdm
+    set_tqdm_in_colab()
 else:
     from tqdm import tqdm
 
