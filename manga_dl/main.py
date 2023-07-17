@@ -107,7 +107,7 @@ def cli(args):
     
     if args.manga:
         manga = Manga.autodetect(args.manga)
-        logger.info(f"Detected manga: {manga.title}")
+        logger.info(f"Detected manga: {manga.title} ({manga.source.current_domain})")
         manga.select_chapters(args.chapters, exclude=args.exclude)
 
         quality = max(10, min(100, args.quality))

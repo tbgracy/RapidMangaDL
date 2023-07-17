@@ -509,7 +509,7 @@ class Manga:
                     for i in img_filenames_chapter.keys()
                 ]
                 with tqdm(
-                    total=len(futures), decc=f"Lowering quality to {quality}"
+                    total=len(futures), desc=f"Lowering quality to {quality}"
                 ) as bar:
                     for future in cf.as_completed(futures):
                         filename, qfilename = future.result()
