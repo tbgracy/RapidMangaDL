@@ -1,3 +1,6 @@
+import nest_asyncio
+nest_asyncio.apply()
+
 import pprint
 from typing import Union
 import concurrent.futures as cf
