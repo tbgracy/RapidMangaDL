@@ -166,7 +166,7 @@ def parser():
     if args.log:
         logger.setLevel(args.log)
     
-
+    print("Ctrl+C to exit")
     if args.mode == "gui":
         try:
             log = logging.getLogger('werkzeug')
@@ -188,7 +188,7 @@ def parser():
         if host == "0.0.0.0":
             host = "127.0.0.1"
         
-        print("   Ctrl+C to exit")
+        
         print(f" * Running on http://{host}:{args.port} (Private)")
         webbrowser.open(f"http://{host}:{args.port}")
         app.run(host=args.host, port=args.port)

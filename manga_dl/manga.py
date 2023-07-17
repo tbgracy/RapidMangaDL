@@ -539,7 +539,10 @@ class Manga:
         for i in range(self.retry_count):
             if not iurls:
                 break
-
+            
+            if i > 0:
+                logger.info(f"Retrying failed images: {len(iurls)}")
+            
             with Downloader(iurls, self.headers, self.temp_dir) as downloader:
                 downloaded_files, failed_urls = downloader.download()
 
@@ -555,10 +558,15 @@ class Manga:
             else:
                 iurls = failed_urls
 
+        if iurls:
+            logger.error(f"Total failed images: {len(iurls)}. Try again later")
+            logger.info("Continuing with failed images")
+        
         failed_files = [
             URLFile(i, os.path.join(self.temp_dir, self.create_failure_image(i)))
             for i in iurls
         ]
+        
 
         all_files: list[URLFile] = checked_files + failed_files
 

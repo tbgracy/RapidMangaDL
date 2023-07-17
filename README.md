@@ -47,6 +47,12 @@ Here's a sneak peek:
 
 ![WEB DEMO](https://github.com/shhossain/RapidMangaDL/raw/main/web_gui.gif)
 
+To share create a shareable link, you can use the `--share` flag:
+
+```bash
+manga-dl gui --share
+```
+
 # Command Line Interface (CLI)
 
 The CLI mode allows you to interact with the application using command-line arguments. Here's an example of how you can use it:
@@ -87,7 +93,7 @@ optional arguments:
 
 You can also use the Python API to interact with the application.
 
-## Selecting a manga
+Selecting a manga
 
 ```python
 from manga_dl import Manga
@@ -101,7 +107,7 @@ print(manga.description)
 
 ```
 
-### Selecting from search results
+Selecting from search results
 
 ```python
 
@@ -112,7 +118,7 @@ manga.set_info()
 print(manga.title)
 ```
 
-## Selecting chapters
+Selecting chapters
 
 ```python
 
@@ -130,7 +136,7 @@ managa.select_chapters("https://manganato.com/manga-az963307/chapter-1-https://m
 manga.select_chapters("1-10", exclude="5") # same rules apply for exclude
 ```
 
-## Downloading
+Downloading
 
 ```python
 manga.create_epub()
@@ -144,7 +150,7 @@ manga.create_epub(quality=70) # Default is 85(unchangable)
 manga.create_epub(path="C:/Users/username/Desktop")
 ```
 
-## Luanching the server
+Luanching the server
 
 ```python
 from manga_dl import app
