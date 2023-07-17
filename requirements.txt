@@ -11,3 +11,4 @@ colorama
 flask
 ebooklib
 fuzzywuzzy
+questionary
