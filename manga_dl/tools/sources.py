@@ -256,6 +256,21 @@ class BaseSource:
     @staticmethod
     def all_domains() -> list[str]:
         return []
+    
+    
+
+    # in operator
+    def __contains__(self, txt) -> bool:
+        if "http" in txt:
+            # match all domains
+            return self.is_valid(txt)
+        else:
+            for domain in self.all_domains():
+                if domain in txt or txt in domain:
+                    return True
+                
+            return False
+
 
 
 class MangaNato(BaseSource):

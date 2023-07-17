@@ -113,7 +113,7 @@ def cli(args):
     if args.manga:
         manga = Manga.autodetect(args.manga, args.source)
         logger.info(f"Detected manga: {manga.title} ({manga.source.current_domain})")
-        answer, _ = timedInput("Continue? (y/n): ", timeout=5)
+        answer, _ = timedInput("Continue? (y/n): ", timeout=3)
         if answer is None or answer.lower() == "n":
             print("Exiting...")
             sys.exit(0)

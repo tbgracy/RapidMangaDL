@@ -181,7 +181,7 @@ class Manga:
                 ratio = 0
                 for manga in mangas:
                     if source:
-                        if not (manga.source.current_domain in source.lower() or source.lower() in manga.source.current_domain):
+                        if source not in manga.source:
                             continue
                             
                     r = fuzz.token_set_ratio(manga.title.upper(), inp.upper())
