@@ -92,6 +92,8 @@ class Downloader:
                 if compressed:
                     os.remove(filepath)
                     filepath = cmp_filepath
+                else:
+                    raise Exception(f"Failed to compress {filepath}")
 
                 self.downloaded_files.append(URLFile(url, filepath))
 

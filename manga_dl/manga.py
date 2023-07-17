@@ -170,7 +170,7 @@ class Manga:
         raise MangaNotFound(f"Could not find manga with id: {id}")
 
     @classmethod
-    def autodetect(cls, inp) -> "Manga":
+    def autodetect(cls, inp, source:str="") -> "Manga":
         if isinstance(inp, str):
             if "http" in inp:
                 return cls(inp)
@@ -180,6 +180,10 @@ class Manga:
                 # find most likely with title with fuzz
                 ratio = 0
                 for manga in mangas:
+                    if source:
+                        if not (manga.source.current_domain in source or source in manga.source.current_domain):
+                            continue
+                            
                     r = fuzz.token_set_ratio(manga.title.upper(), inp.upper())
                     if r > ratio:
                         ratio = r

@@ -15,6 +15,7 @@ except ImportError:
     from manga_dl.manga import Manga
 
 
+from pytimedinput import timedInput
 
 
 helps = {
@@ -43,7 +44,10 @@ def prompt(query=None):
         else:
             break
 
-    mangas_dict = {f"{i+1}. {manga.title} ({manga.source.current_domain})": manga for i, manga in enumerate(mangas)}
+    mangas_dict = {
+        f"{i+1}. {manga.title} ({manga.source.current_domain})": manga
+        for i, manga in enumerate(mangas)
+    }
     manga = qs.select("Select a manga:", choices=list(mangas_dict.keys())).ask()
     manga = mangas_dict[manga]
     manga.set_info()
@@ -72,9 +76,9 @@ def prompt(query=None):
         chapters = vals[0]
         if len(vals) == 2:
             exclude = vals[1]
-        
+
         manga.select_chapters(chapters, exclude=exclude)
-        
+
     # select epub or pdf
     choices = qs.checkbox(
         "Select formats:", choices=["epub", "pdf"], default="epub"
@@ -100,24 +104,28 @@ def prompt(query=None):
         prompt()
     else:
         print("Goodbye!")
-        
 
 
 def cli(args):
     if args.query:
         prompt(args.query)
-    
+
     if args.manga:
         manga = Manga.autodetect(args.manga)
         logger.info(f"Detected manga: {manga.title} ({manga.source.current_domain})")
+        answer, _ = timedInput("Continue? (y/n): ", timeout=5)
+        if answer is None or answer.lower() != "y":
+            print("Exiting...")
+            sys.exit(0)
+
         manga.select_chapters(args.chapters, exclude=args.exclude)
 
         quality = max(10, min(100, args.quality))
         logger.info(f"Quality: {quality}")
-        
+
         if not args.format:
             args.format = "epub"
-            logger.info(f"Format not specified, defaulting to {args.format}")    
+            logger.info(f"Format not specified, defaulting to {args.format}")
 
         logger.info(f"Format: {args.format}")
         logger.info(f"Dowloading {manga.title}...")
@@ -128,8 +136,6 @@ def cli(args):
 
         logger.info("Done!")
         sys.exit(0)
-        
-    
 
 
 def parser():
@@ -137,9 +143,18 @@ def parser():
         description="Manga Downloader",
         formatter_class=argparse.RawTextHelpFormatter,
     )
-    parser.add_argument("mode",nargs="?" , choices=["gui", "prompt", "cli"], help="Mode to run", default="prompt")
+    parser.add_argument(
+        "mode",
+        nargs="?",
+        choices=["gui", "prompt", "cli"],
+        help="Mode to run",
+        default="prompt",
+    )
     parser.add_argument("-s", "--query", help="Search for a manga")
     parser.add_argument("-m", "--manga", help=helps["manga"])
+    parser.add_argument(
+        "-ss", "--source", help="Select source if multiple sources are found"
+    )
     parser.add_argument("-c", "--chapters", help=helps["chapters"])
     parser.add_argument("-ex", "--exclude", help=helps["exclude"])
     parser.add_argument(
@@ -153,67 +168,69 @@ def parser():
     )
     parser.add_argument("--host", default="0.0.0.0", help="Host address of server")
     parser.add_argument("-p", "--port", default=80, type=int, help="Port of server")
-    parser.add_argument("--share", action="store_true", help="Share the server in public")
+    parser.add_argument(
+        "--share", action="store_true", help="Share the server in public"
+    )
     parser.add_argument(
         "-l",
         "--log",
         default="INFO",
-        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
     )
 
     args = parser.parse_args()
 
     if args.log:
         logger.setLevel(args.log)
-    
+
     print("Ctrl+C to exit")
     if args.mode == "gui":
         try:
-            log = logging.getLogger('werkzeug')
+            log = logging.getLogger("werkzeug")
             log.setLevel(logging.ERROR)
-            fcli = sys.modules['flask.cli']
-            fcli.show_server_banner = lambda *x: None # type: ignore
+            fcli = sys.modules["flask.cli"]
+            fcli.show_server_banner = lambda *x: None  # type: ignore
         except Exception as e:
             logger.error(f"Erorr occured while disabling flask logs {e}")
             logger.info("Continuing without disabling flask logs")
-            
+
         if args.share:
-           try:
+            try:
                 run_with_cloudflared(app)
-           except Exception as e:
+            except Exception as e:
                 logger.error(f"Error occured while running with cloudflared {e}")
                 logger.info("Running without cloudflared")
-        
+
         host = args.host
         if host == "0.0.0.0":
             host = "127.0.0.1"
-        
-        
+
         print(f" * Running on http://{host}:{args.port} (Private)")
         webbrowser.open(f"http://{host}:{args.port}")
         app.run(host=args.host, port=args.port)
-        
 
     elif args.mode == "prompt":
         prompt()
 
     elif args.mode == "cli":
         cli(args)
-        
+
 
 def main():
     try:
         parser()
     except KeyboardInterrupt:
+        print("Exiting...")
         print("Goodbye!")
         sys.exit(0)
     except Exception as e:
         logger.error(f"Unexpected error occured {e}")
-        logger.info("Rest assured, all downloaded files are automatically cached. Run the program again to continue downloading.")
+        logger.info(
+            "Rest assured, all downloaded files are automatically cached. Run the program again to continue downloading."
+        )
+        print("Exiting...")
         sys.exit(1)
-        
+
 
 if __name__ == "__main__":
     main()
-
-    

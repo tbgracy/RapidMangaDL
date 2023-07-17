@@ -20,6 +20,9 @@ def auto_scaled_divide(value):
     return math.ceil(value // scaling_factor)
 
 
+
+
+
 def replace_unimportant(text: str, but: Union[list, None] = None) -> str:
     # replace all characters except a-z, A-Z, 0-9, and but
     if but is None:

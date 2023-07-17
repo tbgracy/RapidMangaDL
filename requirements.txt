@@ -15,3 +15,4 @@ questionary
 cloudscraper>=1.2.71
 python-Levenshtein
 nest-asyncio
+pytimedinput>=2.0.1
