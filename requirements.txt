@@ -17,3 +17,4 @@ python-Levenshtein
 nest-asyncio
 pytimedinput>=2.0.1
 selenium
+webdriver-manager>=3.8.6
