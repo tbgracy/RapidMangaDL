@@ -47,7 +47,7 @@ Here's a sneak peek:
 
 ![WEB DEMO](https://github.com/shhossain/RapidMangaDL/raw/main/web_gui.gif)
 
-To share create a shareable link, you can use the `--share` flag:
+To create a shareable link, you can use the `--share` flag:
 
 ```bash
 manga-dl gui --share
