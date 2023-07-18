@@ -1,3 +1,5 @@
+import json
+import time
 from typing import Union
 from PIL import Image, ImageDraw, ImageFont
 import textwrap
@@ -8,9 +10,15 @@ import colorama
 import re
 import math
 from tqdm.auto import tqdm
+import threading
 
 
-logger = logging.getLogger(os.environ.get("LOGGER_NAME", "tools"))
+from selenium import webdriver
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.service import Service
+from uuid import uuid4
+import atexit
+
 _utils_path = os.path.dirname(os.path.abspath(__file__))
 error_img_path = os.path.join(os.path.dirname(_utils_path), "public", "error.png")
 
@@ -18,9 +26,6 @@ error_img_path = os.path.join(os.path.dirname(_utils_path), "public", "error.png
 def auto_scaled_divide(value):
     scaling_factor = math.log10(1 + abs(value)) * 0.5
     return math.ceil(value // scaling_factor)
-
-
-
 
 
 def replace_unimportant(text: str, but: Union[list, None] = None) -> str:
@@ -150,3 +155,101 @@ def http_split(txt, sep):
     for p in parts[1:]:
         rest.append(f"http{p}")
     return [url1] + rest
+
+
+# create a selenium driver manager
+class DriverManager:
+    def __init__(self, driver_count: int = -1):
+        if driver_count == -1:
+            driver_count = (os.cpu_count() or 2) // 2
+
+        self.driver_count = driver_count
+        self.manager = {} 
+        
+        
+        self._init = False
+        
+        logger1 = logging.getLogger("urllib3.connectionpool")
+        logger1.setLevel(logging.INFO)
+
+        logger2 = logging.getLogger("selenium.webdriver.remote.remote_connection")
+        logger2.setLevel(logging.WARNING)
+        
+        atexit.register(self._quit)
+        
+    def init(self):
+        if self._init:
+            return
+        self.service = Service(ChromeDriverManager().install())
+        self.init_drivers()
+        self._init = True
+        
+
+    def create_driver(self):
+        return webdriver.Chrome(service=self.service, options=self.driver_options)
+
+    def init_drivers(self):
+        for _ in range(self.driver_count):
+            self.manager[uuid4().hex] = [
+                self.create_driver(),
+                False,
+            ]  # true if driver is busy
+
+    @property
+    def driver_options(self):
+        options = webdriver.ChromeOptions()
+        options.add_argument("--headless")
+        options.add_argument("--blink-settings=imagesEnabled=false")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+        options.add_argument("--disable-gpu")
+        
+        return options
+
+    def get_driver(self) -> tuple[str, webdriver.Chrome]:
+        self.init()
+        
+        # check if any driver is free
+        for key, value in self.manager.items():
+            if not value[1]:
+                self.manager[key][1] = True
+                return key, value[0]
+
+        # wait for any driver to be free
+        return self.wait_for_driver()
+
+    def wait_for_driver(self) -> tuple[str, webdriver.Chrome]:
+        while True:
+            for key, value in self.manager.items():
+                if not value[1]:
+                    self.manager[key][1] = True
+                    return key, value[0]
+            time.sleep(0.1)
+
+    def release_driver(self, key):
+        self.manager[key][1] = False
+        
+    
+    def _quit(self):
+        if not self._init:
+            return
+        
+        logger.info("Quitting drivers...")
+        
+        for key, value in self.manager.items():
+            try:
+                value[0].close()
+            except Exception as e:
+                logger.error(f"Failed to quit driver {key}: {e}")
+        
+        self.service.stop()
+        atexit.unregister(self._quit)
+    
+        logger.info("Drivers quit successfully")
+    
+    def quit(self):
+        t = threading.Thread(target=self._quit)
+        t.daemon = True
+        t.start()
+        
+driver_manager = DriverManager(1)

@@ -173,8 +173,8 @@ $("#downBtn").on("click", function () {
     url: "/api/manga/download",
     type: "POST",
     data: JSON.stringify({
-      start_url: chapterStart,
-      end_url: chapterEnd,
+      start_id: chapterStart,
+      end_id: chapterEnd,
       quality: dquality,
       dtypes: types,
       manga_id: mangaID,

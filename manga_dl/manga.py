@@ -1,4 +1,7 @@
+import logging
+import math
 import nest_asyncio
+
 nest_asyncio.apply()
 
 import pprint
@@ -9,6 +12,7 @@ import re
 import requests
 import os
 import shutil
+
 
 from PIL import Image
 from fuzzywuzzy import fuzz
@@ -26,11 +30,12 @@ try:
         logger,
         http_split,
         tqdm,
+        driver_manager as manager,
     )
 
     from tools.exceptions import MangaNotFound
-    from tools.sources import get_source, sources
-    from tools.sources import Chapter
+
+    from manga_sources import Chapter, MangaInfo, BaseSource, get_source, sources  # type: ignore
 
 except ImportError:
     from manga_dl.tools import (
@@ -44,50 +49,60 @@ except ImportError:
         logger,
         http_split,
         tqdm,
+        driver_manager as manager,
     )
 
     from manga_dl.tools.exceptions import MangaNotFound
-    from manga_dl.tools.sources import get_source, sources
-    from manga_dl.tools.sources import Chapter
+    from manga_dl.manga_sources import (
+        Chapter,
+        MangaInfo,
+        BaseSource,
+        get_source,
+        sources,
+    )
 
 
 os.environ["TEMP_DIR"] = os.environ.get("TEMP_DIR", "tmp")
 
 
 class Manga:
-    def __init__(self, url: str):
+    def __init__(self, url: str):  # type: ignore
         """
         Manga object
 
         Atributes:
         ----------
         url: str -> url of the manga
-        source: Source -> Source object (see tools.sources.BaseSource)
+        source: Source -> Source object (see)
         id: str -> id of the manga
         title: str -> title of the manga
         cover_url: str -> url of the cover image
         alternative_title: str -> alternative title of the manga
-        
+
         >>> manga = Manga("https://manganelo.com/manga/ta918772")
         >>> manga.set_info() # set manga info
         >>> manga.title
         """
 
         self.url = url
-        self.source = get_source(url)
+
+        self.source: BaseSource = get_source(url)
         self.id = self.source.id
 
         self.title = ""
         self.cover_url = ""
-        self.alternative_title = ""
-        self.author = ""
+        self.alternative_titles = []
+        self.authors = []
         self.status = ""
-        self.genre = ""
+        self.genres = []
         self.description = ""
         self.chapters: list[Chapter] = []
-        self.total_chapters = 0
-        self.last_chapter = 0
-        self.updated = ""
+        self.last_chapter = ""
+        self.last_updated = ""
+        self.rank = ""
+        self.original_language = ""
+        self.translated_language = ""
+        self.artists = []
         self.views = ""
         self.rating = ""
         self.retry_count = int(os.environ.get("RETRY_COUNT", "3"))
@@ -106,6 +121,30 @@ class Manga:
 
         self.check_temp_dir()
 
+    @property
+    def genre(self) -> str:
+        return ", ".join(self.genres)
+
+    @property
+    def artist(self) -> str:
+        return ", ".join(self.artists)
+
+    @property
+    def alternative_title(self) -> str:
+        return ", ".join(self.alternative_titles)
+
+    @property
+    def author(self) -> str:
+        return ", ".join(self.authors)
+
+    @property
+    def updated(self) -> str:
+        return self.last_updated
+
+    @property
+    def total_chapters(self) -> int:
+        return len(self.chapters)
+
     @staticmethod
     def search(query: str) -> list["Manga"]:
         """
@@ -114,12 +153,12 @@ class Manga:
         Parameters:
         -----------
         query: str -> query to search for
-        
+
         Returns:
         --------
         list[Manga] -> list of Manga objects
         """
-        
+
         mangas = []
         with cf.ThreadPoolExecutor() as executor:
             futures = [executor.submit(source.search, query) for source in sources]
@@ -127,40 +166,26 @@ class Manga:
                 results = future.result()
                 mangas.extend(results)
 
-        mangas = [Manga.from_search(manga) for manga in mangas]
+        mangas = [Manga.from_mangainfo(manga) for manga in mangas]
         mangas.sort(
             key=lambda x: fuzz.ratio(x.title.lower(), query.lower()), reverse=True
         )
+
         return mangas
 
     @classmethod
-    def from_search(cls, data: dict) -> "Manga":
-        url = data["url"]
-        c = cls(url)
-        title = data.get("title", "") or ""
-        c.title = title
-        c.cover_url = data.get("cover_url", "") or ""
-        c.author = data.get("author", "") or ""
-        c.last_chapter = data.get("last_chapter", "") or ""
-        return c
+    def from_json(cls, data: dict) -> "Manga":
+        m = cls(data["url"])
+        manga = MangaInfo(data["url"], data["title"])
+        manga.from_json(data)
+        manga.add_to_class(m)
+        return m
 
     @classmethod
-    def from_json(cls, json: dict) -> "Manga":
-        c = cls(json["url"])
-        c.title = json["title"]
-        c.cover_url = json["cover_url"]
-        c.author = json["author"]
-        c.alternative_title = json["alternative_title"]
-        c.status = json["status"]
-        c.genre = json["genre"]
-        c.description = json["description"]
-        c.chapters = [Chapter.from_json(chapter) for chapter in json["chapters"]]
-        c.total_chapters = json["total_chapters"]
-        c.last_chapter = json["last_chapter"]
-        c.updated = json["updated"]
-        c.views = json["views"]
-        c.rating = json["rating"]
-        return c
+    def from_mangainfo(cls, manga: MangaInfo) -> "Manga":
+        m = cls(manga.url)
+        manga.add_to_class(m)
+        return m
 
     @classmethod
     def from_id(cls, id: str) -> "Manga":
@@ -170,7 +195,7 @@ class Manga:
         raise MangaNotFound(f"Could not find manga with id: {id}")
 
     @classmethod
-    def autodetect(cls, inp, source:str="") -> "Manga":
+    def autodetect(cls, inp, source: str = "") -> "Manga":
         if isinstance(inp, str):
             if "http" in inp:
                 return cls(inp)
@@ -183,7 +208,7 @@ class Manga:
                     if source:
                         if source not in manga.source:
                             continue
-                            
+
                     r = fuzz.token_set_ratio(manga.title.upper(), inp.upper())
                     if r > ratio:
                         ratio = r
@@ -273,21 +298,8 @@ class Manga:
         return re.sub(pat, "_", title)
 
     def set_info(self):
-        data = self.source.get_info()
-        self.title = data.get("title", "") or "Title not found"
-        self.cover_url = data.get("cover_url", "") or "/public/error.png"
-        self.author = data.get("author", "") or "Author not found"
-        self.alternative_title = data.get("alternative_title", "")
-        self.status = data.get("status", "") or "Status not available"
-        self.genre = data.get("genre", "") or "No genres given"
-        self.description = data.get("description", "") or "No description given"
-        self.chapters = [
-            Chapter.from_json(chapter) for chapter in data.get("chapters", [])
-        ]
-        self.total_chapters = data.get("total_chapters", len(self.chapters))
-        self.updated = data.get("updated", "") or "No update date given"
-        self.views = data.get("views", "") or "No views found"
-        self.rating = data.get("rating", "") or "No rating found"
+        m = self.source.get_info()
+        m.add_to_class(self)
 
     def chapter_template(self, chapter_title, filenames) -> str:
         return f"""<h1>{chapter_title}</h1>
@@ -331,13 +343,12 @@ class Manga:
             >>> chapters_exists("1", manga.chapters)
             >>> chapters_exists(["1", "2"], manga.chapters)
         """
-        
+
         if inputs is None:
             return {}
 
         if isinstance(inputs, str):
             inputs = [inputs]
-        
 
         chapter_url_dict = {i.url: i for i in chapters}
         chapters_title_dict = {i.title: i for i in chapters}
@@ -355,8 +366,8 @@ class Manga:
                         selected_chapters[i] = chapters[-int_ii:]
                     else:
                         selected_chapters[i] = chapters[-5:]
-                    
-                if i.count("http") == 1:
+
+                elif i.count("http") == 1:
                     if i in chapter_url_dict:
                         selected_chapters[i] = [chapter_url_dict[i]]
 
@@ -392,6 +403,14 @@ class Manga:
                         end_index = chapters.index(schapters[vals[1]][0])
                     if start_index > -1 and end_index > -1:
                         selected_chapters[i] = chapters[start_index:end_index]
+
+                elif i.startswith("ID"):
+                    chapter = None
+                    for ch in chapters:
+                        if ch.eqal_id(i.replace("ID", "").replace("_", "")):
+                            chapter = ch
+                            break
+                    selected_chapters[i] = [chapter]
 
                 elif i == "all":
                     selected_chapters[i] = chapters
@@ -533,11 +552,22 @@ class Manga:
         if quality == 100:
             quality = None
 
-        with cf.ThreadPoolExecutor() as executor:
-            futures = [executor.submit(i.get_chapter_imgs) for i in self.chapters]
-            with tqdm(total=len(futures), desc="Getting Chapter Imgs") as bar:
-                for future in cf.as_completed(futures):
-                    bar.update(1)
+        if not self.source.use_selenium_in_get_chapter_img_urls:
+            with cf.ThreadPoolExecutor() as executor:
+                futures = [executor.submit(i.get_chapter_imgs) for i in self.chapters]
+                with tqdm(total=len(futures), desc="Getting Chapter Imgs") as bar:
+                    for future in cf.as_completed(futures):
+                        bar.update(1)
+
+        else:
+            logger.info(
+                "Using Selenium to get chapter img urls (this may take a while)"
+            )
+
+            driver = manager.get_driver()
+            for chapter in tqdm(self.chapters, desc="Getting Chapter Imgs"):
+                chapter.get_chapter_imgs(driver=driver[1])
+            manager.release_driver(driver[0])
 
         img_urls = []
         img_url_to_chapter: dict[str, Chapter] = {}
@@ -552,10 +582,10 @@ class Manga:
         for i in range(self.retry_count):
             if not iurls:
                 break
-            
+
             if i > 0:
                 logger.info(f"Retrying failed images: {len(iurls)}")
-            
+
             with Downloader(iurls, self.headers, self.temp_dir) as downloader:
                 downloaded_files, failed_urls = downloader.download()
 
@@ -574,12 +604,11 @@ class Manga:
         if iurls:
             logger.error(f"Total failed images: {len(iurls)}. Try again later")
             logger.info("Continuing with failed images")
-        
+
         failed_files = [
             URLFile(i, os.path.join(self.temp_dir, self.create_failure_image(i)))
             for i in iurls
         ]
-        
 
         all_files: list[URLFile] = checked_files + failed_files
 

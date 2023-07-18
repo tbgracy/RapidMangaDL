@@ -13,6 +13,7 @@
     <p><strong>Genre:</strong> {{ manga.genre }}</p>
     <p><strong>Status:</strong> {{ manga.status }}</p>
     <p><strong>Total Chapters:</strong> {{ manga.total_chapters }}</p>
+    <p><strong>Source:</strong> {{ manga.source.current_domain }}</p>
   </div>
 </div>
 
@@ -164,7 +165,7 @@
           <div class="row mb-2">
             <select class="form-select" id="chapter-start">
               {% for chapter in manga.chapters %}
-              <option value="{{ chapter[0] }}">{{ chapter[1] }}</option>
+              <option value="{{ chapter.id }}">{{ chapter[1] }}</option>
               {% endfor %}
             </select>
           </div>
@@ -186,7 +187,7 @@
           <div class="row mt-2">
             <select class="form-select" id="chapter-end">
               {% for chapter in manga.chapters[::-1] %}
-              <option value="{{ chapter[0] }}">{{ chapter[1] }}</option>
+              <option value="{{ chapter.id }}">{{ chapter[1] }}</option>
               {% endfor %}
             </select>
           </div>
@@ -366,18 +367,18 @@
     ...sortedChapters.slice(-1),
   ];
 
-  const topChapterUrls = topChapters.map((chapter) => {
-    return chapter.url;
+  const topChapterIDs = topChapters.map((chapter) => {
+    return chapter.id;
   });
 
   let flag = true;
-  topChapterUrls.forEach(async (chapterUrl) => {
+  topChapterIds.forEach(async (chapterID) => {
     const id = "{{ manga.id | safe}}";
     const url = "/api/manga/imgs";
     $.ajax({
       type: "POST",
       url: url,
-      data: JSON.stringify({ manga_id: id, chapter_url: chapterUrl }),
+      data: JSON.stringify({ manga_id: id, chapter_id: chapterID }),
       contentType: "application/json",
       dataType: "json",
       success: function (data) {

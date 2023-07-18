@@ -1,9 +1,9 @@
 try:
     from manga import Manga, Chapter
-    from tools import Downloader
+    from tools import Downloader, logger, driver_manager as manager
 except ImportError:
     from manga_dl.manga import Manga, Chapter
-    from manga_dl.tools import Downloader
+    from manga_dl.tools import Downloader, logger, driver_manager as manager
 
 import os
 import json
@@ -23,10 +23,8 @@ if not os.path.exists(temp_dir):
     os.makedirs(temp_dir)
 
 
-logger = app.logger
-logger.setLevel(os.environ.get("LOGGING_LEVEL", "DEBUG"))
-
 isDownloading = Value("i", 0)
+
 
 
 @app.route("/", methods=["GET"])
@@ -49,9 +47,7 @@ def manga(manga_id):
     manga.set_info()
 
     for chapter in manga.chapters:
-        if chapter[0].endswith("/"):
-            chapter[0] = chapter[0][:-1]
-        chapter[0] = f"/manga/{manga_id}/{chapter[0].split('/')[-1]}"
+        chapter[0] = f"/manga/{manga_id}/{chapter.id}"
 
     chapters = [chapter.to_json() for chapter in manga.chapters]
     chapters = json.dumps(chapters)
@@ -67,8 +63,8 @@ def url_decode(s):
     return "".join([chr(int(i)) for i in s.split("-")])
 
 
-@app.route("/manga/<string:manga_id>/<string:chapter>", methods=["GET"])
-def manga_chapters(manga_id, chapter):
+@app.route("/manga/<string:manga_id>/<string:chapter_id>", methods=["GET"])
+def manga_chapters(manga_id, chapter_id):
     manga = Manga.from_id(manga_id)
     manga.set_info()
 
@@ -76,10 +72,7 @@ def manga_chapters(manga_id, chapter):
     chapter_idx = -1
     fchapter = None
     for idx, c in enumerate(manga.chapters):
-        if c[0].endswith("/"):
-            c[0] = c[0][:-1]
-
-        if c[0].endswith(chapter):
+        if c.eqal_id(chapter_id):
             chapter_url = c[0]
             fchapter = c
             chapter_idx = idx
@@ -89,20 +82,23 @@ def manga_chapters(manga_id, chapter):
         return redirect(url_for("manga", manga_id=manga_id))
 
     for chapter in manga.chapters:
-        if chapter[0].endswith("/"):
-            chapter[0] = chapter[0][:-1]
-        chapter[0] = f"/manga/{manga_id}/{chapter[0].split('/')[-1]}"
+        chapter[0] = f"/manga/{manga_id}/{chapter.id}"
 
     chapter = Chapter.from_url(chapter_url)
-    imgs = chapter.img_urls
-    # img_urls = [f"/api/img_url/{url_encode(i)}" for i in imgs]
+    
+    if chapter.source.use_selenium_in_get_chapter_img_urls:
+        id, driver = manager.get_driver()
+        imgs = chapter.get_chapter_imgs(driver=driver)
+        manager.release_driver(id)
+    else:
+        imgs = chapter.get_chapter_imgs()
 
     return render_template(
         "chapter.html",
         imgs_urls=imgs,
         manga=manga,
         chapter=fchapter,
-        chapter_idx=chapter_idx,
+        chapter_idx=chapter_idx,    
     )
 
 
@@ -147,31 +143,21 @@ def manga_download():
 
     isDownloading.value = 1  # type: ignore
     data = request.get_json()
-    start_url = data["start_url"]
-    end_url = data["end_url"]
+    start_id = data["start_id"]
+    end_id = data["end_id"]
     quality = data["quality"]
     dtypes = data["dtypes"]
     manga_id = data["manga_id"]
 
-    if start_url.endswith("/"):
-        start_url = start_url[:-1]
-    if end_url.endswith("/"):
-        end_url = end_url[:-1]
-
     quality = int(quality)
-    print("Download:", manga_id, start_url, end_url, quality, dtypes)
 
     manga = Manga.from_id(manga_id)
     manga.set_info()
 
-    url = manga.url
-    if url.endswith("/"):
-        url = url[:-1]
+    start = f"ID_{start_id}"
+    end = f"ID_{end_id}"
 
-    start_url = f"{url}/{start_url.split('/')[-1]}"
-    end_url = f"{url}/{end_url.split('/')[-1]}"
-
-    manga.select_chapters(f"{start_url}-{end_url}")
+    manga.select_chapters(f"{start}-{end}")
 
     data = {"success": True, "paths": []}
     try:
@@ -211,8 +197,9 @@ def manga_download_progress():
 @app.route("/api/manga/imgs", methods=["POST"])
 def manga_chapter_img():
     data = request.get_json()
+    
     manga_id = data["manga_id"]
-    chapter_url = data["chapter_url"]
+    chapter_id = data["chapter_id"]
 
     sdata = {
         "success": True,
@@ -220,11 +207,26 @@ def manga_chapter_img():
     }
 
     manga = Manga.from_id(manga_id)
-    manga.set_info()
-    imgs = manga.source.get_chapter_img_urls("/" + chapter_url.split("/")[-1])
+    chapter = None
+    for c in manga.chapters:
+        if c.eqal_id(chapter_id):
+            chapter = c
+            break
+    if not chapter:
+        sdata["success"] = False
+        sdata["message"] = "Chapter not found"
+        return jsonify(sdata)
+    
+    else:
+        if chapter.source.use_selenium_in_get_chapter_img_urls:
+            id, driver = manager.get_driver()
+            imgs = chapter.get_chapter_imgs(driver=driver)
+            manager.release_driver(id)
+        else:
+            imgs = chapter.get_chapter_imgs()
 
-    sdata["imgs"] = imgs
-    return jsonify(sdata)
+        sdata["imgs"] = imgs
+        return jsonify(sdata)
 
 
 @app.route("/api/img_url/<url>", methods=["GET"])
