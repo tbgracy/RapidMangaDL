@@ -32,27 +32,35 @@ error_img_path = os.path.join(os.path.dirname(_utils_path), "public", "error.png
 
 _logger: list[logging.Logger] = []
 
+import threading
+
+lock = threading.Lock()
 
 def get_logger() -> logging.Logger:
-    if _logger:
-        return _logger[0]
-    else:
-        logger_name = os.environ.get("LOGGER_NAME", "manga")
-        logging_level = os.environ.get("LOGGING_LEVEL", "DEBUG")
-        logger = logging.getLogger(logger_name)
-        logger.setLevel(logging_level)
-        file_handler = logging.FileHandler(os.path.join(get_app_path(), "manga.log"))
-        stream_handler = logging.StreamHandler()
-        formatter = ColorFormatter(
-            "[%(asctime)s | %(filename)s:%(lineno)s (%(funcName)s)] %(levelname)s - %(message)s",
-            datefmt="%I:%M %p",
-        )
-        file_handler.setFormatter(formatter)
-        stream_handler.setFormatter(formatter)
-        logger.addHandler(file_handler)
-        logger.addHandler(stream_handler)
-        _logger.append(logger)
-        return logger
+    with lock:
+        if _logger:
+            return _logger[0]
+        else:
+            logger_name = os.environ.get("LOGGER_NAME", "manga")
+            logging_level = os.environ.get("LOGGING_LEVEL", "DEBUG")
+            logger = logging.getLogger(logger_name)
+            logger.setLevel(logging_level)
+            file_handler = logging.FileHandler(os.path.join(get_app_path(), "manga.log"))
+            stream_handler = logging.StreamHandler()
+            formatter = ColorFormatter(
+                "[%(asctime)s | %(filename)s:%(lineno)s (%(funcName)s)] %(levelname)s - %(message)s",
+                datefmt="%I:%M %p",
+            )
+            file_handler.setFormatter(formatter)
+            stream_handler.setFormatter(formatter)
+            # check if handlers already exists
+            if not logger.handlers:
+                logger.addHandler(file_handler)
+                logger.addHandler(stream_handler)
+
+            logger.propagate = False
+            _logger.append(logger)
+            return logger
 
 
 def share_progress_bar(total_size: float, current_value: float, desc: str = ""):
@@ -229,10 +237,17 @@ class DriverManager:
 
         self.driver_count = driver_count
         self.manager: dict[str, Driver] = {}
+        self.chromedriver_installed = True
 
-        chromedriver_autoinstaller.install()
+        if os.environ.get("DRIVER_INSTALLATION_CHECKED", "0") == "0":
+            try:
+                chromedriver_autoinstaller.install()
+            except Exception as e:
+                self.chromedriver_installed = False
+                logger.error(f"Looks like chrome is not installed: {e}")
+            os.environ["DRIVER_INSTALLATION_CHECKED"] = "1"
 
-        atexit.register(self._quit)
+            
         self.lock = threading.Lock()
 
     def create_driver(self):
@@ -291,8 +306,6 @@ class DriverManager:
         for key, value in self.manager.items():
             value.close()
 
-        atexit.unregister(self._quit)
-
         logger.info("Drivers quit successfully")
         self.manager = {}
 
@@ -302,6 +315,13 @@ class DriverManager:
         t.start()
         return t
 
+
+@atexit.register
+def quit_drivers():
+    try:
+        driver_manager.quit()
+    except Exception as e:
+        logger.error(f"Error while quitting drivers: {e}")
 
 driver_manager = DriverManager(2)
 logger = get_logger()

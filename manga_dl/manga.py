@@ -575,6 +575,11 @@ class Manga:
                         share_progress_bar(len(self.chapters), bar.n, bar.desc)
 
         else:
+            if not manager.chromedriver_installed:
+                logger.error(f"You need chrome to download from {self.source.current_domain}")
+                logger.error("Please install chrome and try again")
+                sys.exit(1)
+            
             logger.info(
                 "Using Selenium to get chapter img urls (this may take a while)"
             )
