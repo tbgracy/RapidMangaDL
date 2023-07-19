@@ -4,7 +4,8 @@
 *.epub
 *.ipynb
 *.pdf
-
+/Output
+*.exe
 
 
 __pycache__/

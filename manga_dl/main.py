@@ -224,7 +224,7 @@ def main():
         print("Goodbye!")
         sys.exit(0)
     except Exception as e:
-        logger.error(f"Unexpected error occured {e}", exc_info=True)
+        logger.error(f"Unexpected error occured {e}",)
         logger.info(
             "Rest assured, all downloaded files are automatically cached. Run the program again to continue downloading."
         )

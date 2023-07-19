@@ -1,9 +1,8 @@
-# setup.py
-from setuptools import setup, find_packages
-
+import sys
+from cx_Freeze import setup, Executable
 
 package_name = "RapidMangaDL"
-package_version = "0.1.4"
+package_version = "0.1.3"
 package_description = "Swiftly download manga from multiple sources."
 package_author = "sifat"
 package_author_email = "hossain0338@gmail.com"
@@ -14,6 +13,9 @@ with open("README.md", "r") as fh:
 with open("requirements.txt", "r") as f:
     requirements = f.read().splitlines()
 
+base = None
+
+executables = [Executable("manga_dl/main.py", base=base, target_name="manga-dl")]
 
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -34,7 +36,7 @@ classifiers = [
     "Topic :: Utilities",
 ]
 
-prject_urls = {
+project_urls = {
     "Documentation": "https://github.com/shhossain/RapidMangaDL",
     "Issue Tracker": "https://github.com/shhossain/RapidMangaDL/issues",
     "Source Code": "https://github.com/shhossain/RapidMangaDL",
@@ -49,18 +51,14 @@ setup(
     author=package_author,
     author_email=package_author_email,
     url="https://github.com/shhossain/RapidMangaDL",
-    packages=find_packages(),
+    packages=["manga_dl"],
     package_data={"manga_dl": ["public/*", "templates/*"]},
     include_package_data=True,
     install_requires=requirements,
-    entry_points={
-        "console_scripts": [
-            "manga-dl = manga_dl.main:main",
-        ]
-    },
     classifiers=classifiers,
     python_requires=">=3.6",
     license="MIT",
     keywords="manga downloader",
-    project_urls=prject_urls,
+    project_urls=project_urls,
+    executables=executables,
 )

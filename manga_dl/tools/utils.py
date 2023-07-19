@@ -23,6 +23,30 @@ _utils_path = os.path.dirname(os.path.abspath(__file__))
 error_img_path = os.path.join(os.path.dirname(_utils_path), "public", "error.png")
 
 
+# get a path for appdata
+def get_appdata_path():
+    # appdata path is user home directory
+    appdata_path = os.path.expanduser("~")
+    # if windows
+    if os.name == "nt":
+        appdata_path = os.path.join(appdata_path)
+    # if linux
+    elif os.name == "posix":
+        appdata_path = os.path.join(appdata_path)
+    # if mac
+    elif os.name == "mac":
+        appdata_path = os.path.join(appdata_path)
+    
+    return appdata_path
+
+def get_app_path():
+    appdata_path = get_appdata_path()
+    app_path = os.path.join(appdata_path, "manga-dl")
+    if not os.path.exists(app_path):
+        os.makedirs(app_path)
+    return app_path
+
+
 def auto_scaled_divide(value):
     scaling_factor = math.log10(1 + abs(value)) * 0.5
     return math.ceil(value // scaling_factor)
@@ -64,7 +88,7 @@ logging_level = os.environ.get("LOGGING_LEVEL", "DEBUG")
 logger = logging.getLogger(logger_name)
 logger.setLevel(logging_level)
 
-file_handler = logging.FileHandler("manga.log")
+file_handler = logging.FileHandler(os.path.join(get_app_path(), "manga.log"))
 stream_handler = logging.StreamHandler()
 
 formatter = ColorFormatter(

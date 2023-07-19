@@ -31,6 +31,7 @@ try:
         http_split,
         tqdm,
         driver_manager as manager,
+        get_app_path,
     )
 
     from tools.exceptions import MangaNotFound
@@ -50,6 +51,7 @@ except ImportError:
         http_split,
         tqdm,
         driver_manager as manager,
+        get_app_path,
     )
 
     from manga_dl.tools.exceptions import MangaNotFound
@@ -61,8 +63,12 @@ except ImportError:
         sources,
     )
 
-
-os.environ["TEMP_DIR"] = os.environ.get("TEMP_DIR", "tmp")
+app_path = get_app_path()
+temp_dir = os.path.join(app_path, "temp")
+os.environ["TEMP_DIR"] = os.environ.get("TEMP_DIR", temp_dir)
+temp_dir = os.environ["TEMP_DIR"]
+if not os.path.exists(temp_dir):
+    os.makedirs(temp_dir)
 
 
 class Manga:

@@ -13,7 +13,7 @@ ebooklib
 fuzzywuzzy
 questionary
 cloudscraper>=1.2.71
-python-Levenshtein
+python-Levenshtein==0.21.1
 nest-asyncio
 pytimedinput>=2.0.1
 selenium

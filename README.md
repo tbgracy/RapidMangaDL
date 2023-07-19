@@ -5,7 +5,9 @@ RapidMangaDL is a Python package that allows you to swiftly download manga from 
 
 ## Installation
 
-To install Manga Downloader, you can use `pip`:
+You can download windows executable from [Latest Release](https://github.com/shhossain/RapidMangaDL/releases/latest)
+
+Or you can use `pip`:
 
 ```bash
 pip install RapidMangaDL

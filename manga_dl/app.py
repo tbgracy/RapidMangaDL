@@ -1,9 +1,14 @@
 try:
     from manga import Manga, Chapter
-    from tools import Downloader, logger, driver_manager as manager
+    from tools import Downloader, logger, driver_manager as manager, get_app_path
 except ImportError:
     from manga_dl.manga import Manga, Chapter
-    from manga_dl.tools import Downloader, logger, driver_manager as manager
+    from manga_dl.tools import (
+        Downloader,
+        logger,
+        driver_manager as manager,
+        get_app_path,
+    )
 
 import os
 import json
@@ -18,13 +23,12 @@ headers = Headers().generate()
 app = Flask(__name__, static_folder="public")
 app.url_map.strict_slashes = False
 
-temp_dir = "tmp"
+temp_dir = os.environ.get("TEMP_DIR", os.path.join(get_app_path(), "tmp"))
 if not os.path.exists(temp_dir):
     os.makedirs(temp_dir)
 
 
 isDownloading = Value("i", 0)
-
 
 
 @app.route("/", methods=["GET"])
@@ -85,7 +89,7 @@ def manga_chapters(manga_id, chapter_id):
         chapter[0] = f"/manga/{manga_id}/{chapter.id}"
 
     chapter = Chapter.from_url(chapter_url)
-    
+
     if chapter.source.use_selenium_in_get_chapter_img_urls:
         id, driver = manager.get_driver()
         imgs = chapter.get_chapter_imgs(driver=driver)
@@ -98,7 +102,7 @@ def manga_chapters(manga_id, chapter_id):
         imgs_urls=imgs,
         manga=manga,
         chapter=fchapter,
-        chapter_idx=chapter_idx,    
+        chapter_idx=chapter_idx,
     )
 
 
@@ -197,7 +201,7 @@ def manga_download_progress():
 @app.route("/api/manga/imgs", methods=["POST"])
 def manga_chapter_img():
     data = request.get_json()
-    
+
     manga_id = data["manga_id"]
     chapter_id = data["chapter_id"]
 
@@ -216,7 +220,7 @@ def manga_chapter_img():
         sdata["success"] = False
         sdata["message"] = "Chapter not found"
         return jsonify(sdata)
-    
+
     else:
         if chapter.source.use_selenium_in_get_chapter_img_urls:
             id, driver = manager.get_driver()
