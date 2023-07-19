@@ -62,6 +62,7 @@ def get_logger() -> logging.Logger:
             _logger.append(logger)
             return logger
 
+logger = get_logger()
 
 def share_progress_bar(total_size: float, current_value: float, desc: str = ""):
     os.environ["PROGRESS_BAR"] = json.dumps(
@@ -324,4 +325,4 @@ def quit_drivers():
         logger.error(f"Error while quitting drivers: {e}")
 
 driver_manager = DriverManager(2)
-logger = get_logger()
+
