@@ -195,12 +195,12 @@ def compress_file_path(file_path):
     return name + ext
 
 
-def http_split(txt, sep):
-    parts = txt.strip().split(f"{sep}http")
+def txt_split(txt, sep, split="http"):
+    parts = txt.strip().split(f"{sep}{split}")
     url1 = parts[0]
     rest = []
     for p in parts[1:]:
-        rest.append(f"http{p}")
+        rest.append(f"{split}{p}")
     return [url1] + rest
 
 

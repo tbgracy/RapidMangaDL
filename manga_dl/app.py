@@ -160,6 +160,7 @@ def manga_download():
     start = f"ID_{start_id}"
     end = f"ID_{end_id}"
 
+    print("Start, end:", start, end)
     manga.select_chapters(f"{start}-{end}")
 
     data = {"success": True, "paths": []}

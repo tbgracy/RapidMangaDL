@@ -192,6 +192,7 @@ def parser():
             log.setLevel(logging.ERROR)
             fcli = sys.modules["flask.cli"]
             fcli.show_server_banner = lambda *x: None  # type: ignore
+            
         except Exception as e:
             logger.error(f"Erorr occured while disabling flask logs {e}")
             logger.info("Continuing without disabling flask logs")

@@ -1,8 +1,9 @@
 from .source1 import MangaNato, Bato, ONEkissmanga, BaseSource, Chapter, MangaInfo
-from manga_dl.tools.exceptions import SourceNotFound
 
 sources = [MangaNato, Bato, ONEkissmanga]
 
+class SourceNotFound(Exception):
+    pass
 
 def all_domains() -> list[str]:
     return [domain for source in sources for domain in source.all_domains()]

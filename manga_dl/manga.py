@@ -26,7 +26,7 @@ from tools import (
     URLFile,
     replace_unimportant,
     logger,
-    http_split,
+    txt_split,
     tqdm,
     driver_manager as manager,
     get_app_path,
@@ -364,12 +364,31 @@ class Manga:
         chapter_url_dict = {i.url: i for i in chapters}
         chapters_title_dict = {i.title: i for i in chapters}
         selected_chapters = {}
+
         for i in inputs:
             if not i:
                 selected_chapters[i] = []
 
             if isinstance(i, str):
-                if i.startswith("latest") or i.startswith("last"):
+                if "ID_" in i:
+                    if "-ID_" in i:
+                        vals = txt_split(i, "-", split="ID_")
+                        sid = -1
+                        eid = -1
+                        for idx, v in enumerate(chapters):
+                            if v.eqal_id(vals[0].replace("ID_", "")):
+                                sid = idx
+                            if v.eqal_id(vals[1].replace("ID_", "")):
+                                eid = idx
+                        if sid > -1 and eid > -1:
+                            selected_chapters[i] = chapters[sid:eid]
+                    else:
+                        for idx, v in enumerate(chapters):
+                            if v.eqal_id(i.replace("ID_", "")):
+                                selected_chapters[i] = [chapters[idx]]
+                                break
+
+                elif i.startswith("latest") or i.startswith("last"):
                     ii = i.replace("latest", "").replace("last", "")
                     ii = replace_unimportant(ii)
                     if ii.isdigit():
@@ -389,7 +408,7 @@ class Manga:
 
                 elif "," in i:
                     if "http" in i:
-                        vals = http_split(i, ",")
+                        vals = txt_split(i, ",")
                     else:
                         ii = replace_unimportant(i, but=["-", ","])
                         vals = [a.strip() for a in ii.split(",")]
@@ -397,11 +416,11 @@ class Manga:
                     selected_chapters[i] = [i for a in schapters.values() for i in a]
 
                 elif "-" in i:
-                    if "http" not in i:
+                    if "http" in i and "://" in i:
+                        vals = txt_split(i, "-")
+                    else:
                         ii = replace_unimportant(i, but=["-", ","])
                         vals = [i.strip() for i in ii.split("-")]
-                    else:
-                        vals = http_split(i, "-")
 
                     schapters = self.chapters_exists(vals, chapters)
                     ct1 = chapters.count(schapters[vals[0]][0])
@@ -414,14 +433,6 @@ class Manga:
                         end_index = chapters.index(schapters[vals[1]][0])
                     if start_index > -1 and end_index > -1:
                         selected_chapters[i] = chapters[start_index:end_index]
-
-                elif i.startswith("ID"):
-                    chapter = None
-                    for ch in chapters:
-                        if ch.eqal_id(i.replace("ID", "").replace("_", "")):
-                            chapter = ch
-                            break
-                    selected_chapters[i] = [chapter]
 
                 elif i == "all":
                     selected_chapters[i] = chapters
@@ -576,10 +587,12 @@ class Manga:
 
         else:
             if not manager.chromedriver_installed:
-                logger.error(f"You need chrome to download from {self.source.current_domain}")
+                logger.error(
+                    f"You need chrome to download from {self.source.current_domain}"
+                )
                 logger.error("Please install chrome and try again")
                 sys.exit(1)
-            
+
             logger.info(
                 "Using Selenium to get chapter img urls (this may take a while)"
             )
