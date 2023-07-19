@@ -30,39 +30,6 @@ _utils_path = os.path.dirname(os.path.abspath(__file__))
 error_img_path = os.path.join(os.path.dirname(_utils_path), "public", "error.png")
 
 
-_logger: list[logging.Logger] = []
-
-import threading
-
-lock = threading.Lock()
-
-def get_logger() -> logging.Logger:
-    with lock:
-        if _logger:
-            return _logger[0]
-        else:
-            logger_name = os.environ.get("LOGGER_NAME", "manga")
-            logging_level = os.environ.get("LOGGING_LEVEL", "DEBUG")
-            logger = logging.getLogger(logger_name)
-            logger.setLevel(logging_level)
-            file_handler = logging.FileHandler(os.path.join(get_app_path(), "manga.log"))
-            stream_handler = logging.StreamHandler()
-            formatter = ColorFormatter(
-                "[%(asctime)s | %(filename)s:%(lineno)s (%(funcName)s)] %(levelname)s - %(message)s",
-                datefmt="%I:%M %p",
-            )
-            file_handler.setFormatter(formatter)
-            stream_handler.setFormatter(formatter)
-            # check if handlers already exists
-            if not logger.handlers:
-                logger.addHandler(file_handler)
-                logger.addHandler(stream_handler)
-
-            logger.propagate = False
-            _logger.append(logger)
-            return logger
-
-logger = get_logger()
 
 def share_progress_bar(total_size: float, current_value: float, desc: str = ""):
     os.environ["PROGRESS_BAR"] = json.dumps(
@@ -128,6 +95,34 @@ class ColorFormatter(logging.Formatter):
         record.msg = message
         return super().format(record)
 
+_logger: list[logging.Logger] = []
+
+def get_logger() -> logging.Logger:
+    if _logger:
+        return _logger[0]
+    else:
+        logger_name = os.environ.get("LOGGER_NAME", "manga")
+        logging_level = os.environ.get("LOGGING_LEVEL", "DEBUG")
+        logger = logging.getLogger(logger_name)
+        logger.setLevel(logging_level)
+        file_handler = logging.FileHandler(os.path.join(get_app_path(), "manga.log"))
+        stream_handler = logging.StreamHandler()
+        formatter = ColorFormatter(
+            "[%(asctime)s | %(filename)s:%(lineno)s (%(funcName)s)] %(levelname)s - %(message)s",
+            datefmt="%I:%M %p",
+        )
+        file_handler.setFormatter(formatter)
+        stream_handler.setFormatter(formatter)
+        # check if handlers already exists
+        if not logger.handlers:
+            logger.addHandler(file_handler)
+            logger.addHandler(stream_handler)
+
+        logger.propagate = False
+        _logger.append(logger)
+        return logger
+
+logger = get_logger()
 
 def create_failure_image(failure_path, url):
     img = Image.open(error_img_path)
