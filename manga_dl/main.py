@@ -5,6 +5,8 @@ import webbrowser
 import sys
 import logging
 
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 try:
     from app import app
     from tools import logger, run_with_cloudflared

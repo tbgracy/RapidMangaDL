@@ -554,18 +554,21 @@ class Bato(BaseSource):
     @exists
     def get_chapter_img_urls(self, chapter_url: str, **kw) -> list[str]:
         results = []
-        try:
-            driver = kw.get("driver", None)
-            if not driver:
-                raise Exception(f"Cannot get img urls in {Bato.domain} without driver")
-            driver.get(chapter_url)
-            imgs = driver.find_elements(By.XPATH, "//div[@id='viewer']//img")
-            for img in imgs:
-                results.append(img.get_attribute("src"))
-        except Exception as e:
-            logger.error(f"Error getting chapter image urls for {chapter_url}: {e}")
+        for i in range(2):
+            try:
+                driver = kw.get("driver", None)
+                if not driver:
+                    raise Exception(f"Cannot get img urls in {Bato.domain} without driver")
+                driver.get(chapter_url)
+                imgs = driver.find_elements(By.XPATH, "//div[@id='viewer']//img")
+                for img in imgs:
+                    results.append(img.get_attribute("src"))
+                    
+                if results:
+                    break
+            except Exception as e:
+                logger.error(f"Error getting chapter image urls for {chapter_url}: {e}")
 
         if "pbar" in kw:
             kw["pbar"].update(1)
-
         return results

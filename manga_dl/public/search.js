@@ -11,7 +11,7 @@ const timePassed = (d1, d2) => {
 
 let searchTime = new Date();
 $("#search").on("keyup", function () {
-  let query = $(this).val().trim();
+  let query = $(this).val();
   if (query.length < 3) {
     return;
   }
@@ -21,7 +21,7 @@ $("#search").on("keyup", function () {
     let now = new Date();
     if (timePassed(searchTime, now) >= 0.5) {
       searchTime = now;
-      searchQuery($(this).val().trim());
+      searchQuery($(this).val());
     }
   }, 500);
 });

@@ -1,3 +1,10 @@
+import os
+import json
+from flask import Flask, render_template, request, redirect, url_for, jsonify
+from multiprocessing import Value
+from fake_headers import Headers
+from urllib.parse import urlparse
+
 try:
     from manga import Manga, Chapter
     from tools import Downloader, logger, driver_manager as manager, get_app_path
@@ -9,14 +16,6 @@ except ImportError:
         driver_manager as manager,
         get_app_path,
     )
-
-import os
-import json
-from flask import Flask, render_template, request, redirect, url_for, jsonify
-from multiprocessing import Value
-from fake_headers import Headers
-from urllib.parse import urlparse
-
 
 headers = Headers().generate()
 

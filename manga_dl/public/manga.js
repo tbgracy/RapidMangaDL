@@ -7,8 +7,6 @@ function getNumber(str, asc = false) {
   }
 }
 
-
-
 function getViews(views) {
   if (views.includes("K")) {
     views = views.slice(0, -1);
@@ -89,7 +87,6 @@ $("#downloadBtn").on("click", function () {
   $("#downloadModal").modal("show");
 });
 
-
 function changeDownloadButtonProgress(value) {
   const dlbtn = $(".two-color-element");
   const whitePercentage = 100 - value;
@@ -100,21 +97,22 @@ function changeDownloadButtonProgress(value) {
 }
 
 let interval = null;
-function changeProgress(value) {
+function changeProgress(value, progress) {
   // if value not in range 0-100 return
-  if (value < 0 || value > 100 || value == NaN) return;
+  if (value < 0 || value > 100 || Number.isNaN(value)) return;
   changeDownloadButtonProgress(parseInt(value));
 
   value = `${value}%`;
   $("#progress").css("width", value);
+  $("#progress").text(progress.desc);
   $("#progress-value").text(value);
   if (value == "100%") {
     $("#downloadBtn").find("span").text("Download");
   } else {
-    $("#downloadBtn").find("span").text(`Downloading ${value}`);
+    $("#downloadBtn").find("span").text(`${progress.desc} ${value} ${progress.current}/${progress.total}`);
   }
 
-  console.log('Changing progress', value);
+  console.log("Changing progress", value);
 }
 
 function updateProgress() {
@@ -126,9 +124,12 @@ function updateProgress() {
         const progress = data.progress;
         const isDownloading = data.isDownloading;
         if (isDownloading) {
-          changeProgress(Math.floor((progress.current / progress.total) * 100));
+          changeProgress(
+            Math.floor((progress.current / progress.total) * 100),
+            progress
+          );
         } else {
-          changeProgress(100);
+          changeProgress(100, progress);
           clearInterval(interval);
         }
       }
@@ -138,7 +139,7 @@ function updateProgress() {
       console.log(status);
       console.log(error);
       if (interval) {
-        changeProgress(100);
+        changeProgress(100, { desc: "Error" , current: 0, total: 0});
         clearInterval(interval);
       }
     },

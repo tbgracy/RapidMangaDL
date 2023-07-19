@@ -16,5 +16,5 @@ cloudscraper>=1.2.71
 python-Levenshtein==0.21.1
 nest-asyncio
 pytimedinput>=2.0.1
-selenium
-webdriver-manager>=3.8.6
+selenium>=4.0.0
+chromedriver-autoinstaller>=0.4.1

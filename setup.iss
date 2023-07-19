@@ -3,7 +3,7 @@
 
 #define SourceDir "F:\Code\Python\manga_downloader\"
 #define MyAppName "Manga Downloader"
-#define MyAppVersion "0.1.3"
+#define MyAppVersion "0.1.5"
 #define MyAppPublisher "Auto-Life"
 #define MyAppExeName "mangadl.exe"
 #define MyAppIcoName "manga.ico"
@@ -14,7 +14,7 @@ AppId={{CC10DA5C-05CA-4B0F-B054-FDA57359EEE2}}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
-DefaultDirName=C:\Program Files\{#MyAppName}    
+DefaultDirName=C:\Program Files\{#AppSaveName}    
 DisableProgramGroupPage=yes
 LicenseFile={#SourceDir}\LICENSE
 OutputBaseFilename=setup
@@ -32,7 +32,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Files]
 Source: "{#SourceDir}\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "{#SourceDir}\build\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#SourceDir}\build\bin\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#SourceDir}\{#MyAppIcoName}"; DestDir: "{app}"
 
 [Icons]
@@ -45,11 +45,11 @@ Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChang
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
     if (CurStep = ssPostInstall) and IsTaskSelected('envPath')
-    then EnvAddPath(ExpandConstant('{app}') +'\bin');
+    then EnvAddPath(ExpandConstant('{app}'));
 end;
 
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 begin
     if CurUninstallStep = usPostUninstall
-    then EnvRemovePath(ExpandConstant('{app}') +'\bin');
+    then EnvRemovePath(ExpandConstant('{app}'));
 end;

@@ -1,5 +1,3 @@
-import logging
-import math
 import nest_asyncio
 
 nest_asyncio.apply()
@@ -12,56 +10,59 @@ import re
 import requests
 import os
 import shutil
-
+import sys
 
 from PIL import Image
 from fuzzywuzzy import fuzz
 
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-try:
-    from tools import (
-        Downloader,
-        PDFChapter,
-        PDF,
-        create_failure_image,
-        get_file_name,
-        URLFile,
-        replace_unimportant,
-        logger,
-        http_split,
-        tqdm,
-        driver_manager as manager,
-        get_app_path,
-    )
+from tools import (
+    Downloader,
+    PDFChapter,
+    PDF,
+    create_failure_image,
+    get_file_name,
+    URLFile,
+    replace_unimportant,
+    logger,
+    http_split,
+    tqdm,
+    driver_manager as manager,
+    get_app_path,
+    share_progress_bar,
+)
 
-    from tools.exceptions import MangaNotFound
+from tools.exceptions import MangaNotFound
 
-    from manga_sources import Chapter, MangaInfo, BaseSource, get_source, sources  # type: ignore
+from manga_sources import Chapter, MangaInfo, BaseSource, get_source, sources  # type: ignore
 
-except ImportError:
-    from manga_dl.tools import (
-        Downloader,
-        PDFChapter,
-        PDF,
-        create_failure_image,
-        get_file_name,
-        URLFile,
-        replace_unimportant,
-        logger,
-        http_split,
-        tqdm,
-        driver_manager as manager,
-        get_app_path,
-    )
+# except Exception as e:
+#     from manga_dl.tools import (
+#         Downloader,
+#         PDFChapter,
+#         PDF,
+#         create_failure_image,
+#         get_file_name,
+#         URLFile,
+#         replace_unimportant,
+#         logger,
+#         http_split,
+#         tqdm,
+#         driver_manager as manager,
+#         get_app_path,
+#         share_progress_bar,
+#     )
 
-    from manga_dl.tools.exceptions import MangaNotFound
-    from manga_dl.manga_sources import (
-        Chapter,
-        MangaInfo,
-        BaseSource,
-        get_source,
-        sources,
-    )
+#     from manga_dl.tools.exceptions import MangaNotFound
+#     from manga_dl.manga_sources import (
+#         Chapter,
+#         MangaInfo,
+#         BaseSource,
+#         get_source,
+#         sources,
+#     )
+
 
 app_path = get_app_path()
 temp_dir = os.path.join(app_path, "temp")
@@ -72,24 +73,24 @@ if not os.path.exists(temp_dir):
 
 
 class Manga:
+    """
+    Manga object
+
+    Atributes:
+    ----------
+    url: str -> url of the manga
+    source: Source -> Source object (see)
+    id: str -> id of the manga
+    title: str -> title of the manga
+    cover_url: str -> url of the cover image
+    alternative_title: str -> alternative title of the manga
+
+    >>> manga = Manga("https://manganelo.com/manga/ta918772")
+    >>> manga.set_info() # set manga info
+    >>> manga.title
+    """
+
     def __init__(self, url: str):  # type: ignore
-        """
-        Manga object
-
-        Atributes:
-        ----------
-        url: str -> url of the manga
-        source: Source -> Source object (see)
-        id: str -> id of the manga
-        title: str -> title of the manga
-        cover_url: str -> url of the cover image
-        alternative_title: str -> alternative title of the manga
-
-        >>> manga = Manga("https://manganelo.com/manga/ta918772")
-        >>> manga.set_info() # set manga info
-        >>> manga.title
-        """
-
         self.url = url
 
         self.source: BaseSource = get_source(url)
@@ -126,6 +127,10 @@ class Manga:
         # self._manager = FileManager()
 
         self.check_temp_dir()
+
+    def clear_temp_dir(self):
+        shutil.rmtree(self.temp_dir)
+        os.makedirs(self.temp_dir)
 
     @property
     def genre(self) -> str:
@@ -495,9 +500,10 @@ class Manga:
 
     def lower_quality(self, filename: str, quality: int):
         # add quality to filename
-        qfilename = filename.split(".")
-        qfilename[-2] += f"_{quality}"
-        qfilename = ".".join(qfilename)
+        name, ext = os.path.splitext(filename)
+        name = f"{name}_q{quality}"
+        qfilename = f"{name}{ext}"
+
         qpath = os.path.join(self.temp_dir, qfilename)
         path = os.path.join(self.temp_dir, filename)
 
@@ -506,12 +512,14 @@ class Manga:
 
         try:
             img = Image.open(path)
+            if img.mode != "RGB":
+                img = img.convert("RGB")
 
-            img.convert("RGB").save(qpath, optimize=True, quality=quality)
+            img.save(qpath, optimize=True, quality=quality)
             img.close()
         except Exception as e:
-            logger.error(f"Manga(lower_quality): Error lowering quality: {e}")
-            logger.info(f"Manga(lower_quality): Saving image without lowering quality")
+            logger.error(f"Error lowering quality: {e}", exc_info=True)
+            logger.info(f"Saving image without lowering quality")
             shutil.copy(path, qpath)
 
         return filename, qfilename
@@ -564,6 +572,7 @@ class Manga:
                 with tqdm(total=len(futures), desc="Getting Chapter Imgs") as bar:
                     for future in cf.as_completed(futures):
                         bar.update(1)
+                        share_progress_bar(len(self.chapters), bar.n, bar.desc)
 
         else:
             logger.info(
@@ -571,9 +580,13 @@ class Manga:
             )
 
             driver = manager.get_driver()
+            i = 0
             for chapter in tqdm(self.chapters, desc="Getting Chapter Imgs"):
                 chapter.get_chapter_imgs(driver=driver[1])
+                share_progress_bar(len(self.chapters), i, "Getting Chapter Imgs")
+                i += 1
             manager.release_driver(driver[0])
+            manager.quit()
 
         img_urls = []
         img_url_to_chapter: dict[str, Chapter] = {}
@@ -591,6 +604,7 @@ class Manga:
 
             if i > 0:
                 logger.info(f"Retrying failed images: {len(iurls)}")
+                share_progress_bar(len(iurls), 0, "Retrying failed images")
 
             with Downloader(iurls, self.headers, self.temp_dir) as downloader:
                 downloaded_files, failed_urls = downloader.download()
@@ -643,6 +657,7 @@ class Manga:
                         chapter = img_filenames_chapter[filename]
                         chapter.add_qfile((filename, qfilename))
                         bar.update(1)
+                        share_progress_bar(len(futures), bar.n, bar.desc)
 
             for chapter in self.chapters:
                 chapter.order_qfiles()
@@ -650,10 +665,11 @@ class Manga:
         items = []
         for chapter in self.chapters:
             title = chapter.title
+            ch_id = chapter.id
             filenames = chapter.img_filenames
             if isinstance(book, epub.EpubBook):
                 epub_chapter = epub.EpubHtml(
-                    title=title, file_name=f"{title}.xhtml", lang="en"
+                    title=ch_id, file_name=f"{ch_id}.xhtml", lang="en"
                 )
 
                 epub_chapter.content = self.chapter_template(title, filenames)
@@ -689,8 +705,16 @@ class Manga:
                     for item in executor.map(create_chapter, nitems):
                         items.append(item)
                         bar.update(1)
+                        share_progress_bar(len(nitems), bar.n, bar.desc)
 
         return items
+
+    def get_save_path(self, path: str = "") -> str:
+        if not path:
+            path = os.path.join(get_app_path(), "Downloads")
+        if not os.path.exists(path):
+            os.makedirs(path)
+        return path
 
     def create_epub(self, quality=None, path: str = ""):
         """
@@ -709,6 +733,8 @@ class Manga:
 
         self._quality = quality
         chapters = self.add_chapters(book, quality=quality)
+
+        share_progress_bar(3, 0, "Creating Epub")
 
         # set metadata
         book.set_identifier(self.id)
@@ -740,18 +766,17 @@ class Manga:
 
         book.add_item(nav_css)
 
+        share_progress_bar(3, 2, "Creating Epub")
+
         book.spine = ["cover", "nav", about] + list(chapters)
 
         filename = f"{self.get_save_name()}.epub"
-        if not path:
-            path = filename
-        else:
-            if not os.path.isdir(path):
-                os.makedirs(path)
-            path = os.path.join(path, filename)
+        path = self.get_save_path(path)
+        path = os.path.join(path, filename)
 
         logger.info(f"Manga(create_epub): Saving to {path}")
         epub.write_epub(path, book)
+        share_progress_bar(3, 3, "Creating Epub")
         return path
 
     def create_pdf(self, quality=None, path: str = ""):  # type: ignore
@@ -774,10 +799,12 @@ class Manga:
         pdf.set_cover(self.download_cover())
 
         chapters: list[PDFChapter] = self.add_chapters(pdf, quality=quality)  # type: ignore
+        share_progress_bar(3, 0, "Creating PDF")
         [pdf.add_chapter(i) for i in chapters]
 
         pdf.set_toc(chapters)
 
+        share_progress_bar(3, 2, "Creating PDF")
         data = [
             {
                 "label": "Title",
@@ -808,16 +835,10 @@ class Manga:
         pdf.set_page_data(data)
 
         filename = f"{self.get_save_name()}.pdf"
-
-        if not path:
-            path = filename
-        else:
-            if not os.path.isdir(path):
-                os.makedirs(path)
-
-            path = os.path.join(path, filename)
+        path = self.get_save_path(path)
+        path = os.path.join(path, filename)
 
         pdf.write(path)
         logger.info(f"Manga(create_pdf): Saving to {path}")
-
+        share_progress_bar(3, 3, "Creating PDF")
         return path

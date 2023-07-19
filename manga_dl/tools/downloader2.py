@@ -14,7 +14,8 @@ from .utils import (
     jpeg_compress,
     safe_remove,
     auto_scaled_divide,
-    tqdm
+    tqdm,
+    share_progress_bar,
 )
 from .models import URLFile
 import asyncio
@@ -51,19 +52,6 @@ class Downloader:
 
     def get_filename(self, url):
         return hashlib.sha1(url.encode()).hexdigest() + ".jpg"
-
-    def share_progress_bar(
-        self, total_size: float, current_value: float, desc: str = ""
-    ):
-        os.environ["PROGRESS_BAR"] = json.dumps(
-            {"total": total_size, "current": current_value, "desc": desc}
-        )
-
-    def share_pbar(self):
-        self.current_progress += 1
-        self.share_progress_bar(
-            self.total_urls, self.current_progress, desc="Downloading Files"
-        )
 
     async def download_file(self, session: aiohttp.ClientSession, url: str, pbar):
         filename = self.get_filename(url)
@@ -102,7 +90,7 @@ class Downloader:
                 self.failed_urls.append(url)
                 return
         pbar.update(1)
-        self.share_pbar()
+        share_progress_bar(pbar.total, pbar.n, pbar.desc)
         self.total_urls -= 1
 
     async def download_all(self):
