@@ -29,9 +29,6 @@ class MangaNato(BaseSource):
         super().__init__(url)
         self.headers["referer"] = f"https://{self.alternate_domains[0]}/"
 
-    @staticmethod
-    def is_valid(url: str) -> bool:
-        return any(domain in url for domain in MangaNato.all_domains())
 
     @staticmethod
     def valid_url(url: str) -> str:
@@ -86,23 +83,16 @@ class MangaNato(BaseSource):
         return results
 
     @property
-    def manganato_id(self) -> str:
+    def _id(self) -> str:
         url = self.url
         if self.url.endswith("/"):
             url = self.url[:-1]
         return url.split("/")[-1].replace("manga-", "")
 
-    @property
-    def id(self) -> str:
-        return f"managato_{self.manganato_id}"
 
-    @staticmethod
-    def valid_id(id: str) -> bool:
-        return id.startswith("managato_")
-
-    @staticmethod
-    def id_to_url(id: str) -> str:
-        return f"https://chapmanganato.com/manga-{id.replace('managato_', '')}"
+    @classmethod
+    def id_to_url(cls,id: str) -> str:
+        return super().id_to_url(id).replace(cls.domain, cls.alternate_domains[0]).replace("manga/", "manga-")
 
     @exists
     def get_info(self) -> MangaInfo:
@@ -202,7 +192,7 @@ class MangaNato(BaseSource):
             soup = BeautifulSoup(res.text, "html.parser")
             imgs = soup.select(".container-chapter-reader img")  # type: ignore
             imgs = [i.get("src") for i in imgs]  # type: ignore
-            imgs: list[str] = [i for i in imgs if self.manganato_id in i]  # type: ignore
+            imgs: list[str] = [i for i in imgs if self._id in i]  # type: ignore
 
         except Exception as e:
             logger.error(
@@ -212,9 +202,6 @@ class MangaNato(BaseSource):
 
         return imgs
 
-    @staticmethod
-    def all_domains() -> list[str]:
-        return [MangaNato.domain] + MangaNato.alternate_domains
 
 
 class ONEkissmanga(BaseSource):
@@ -223,24 +210,12 @@ class ONEkissmanga(BaseSource):
 
     def __init__(self, url: str):
         super().__init__(url)
-        self.headers["referer"] = f"https://{ONEkissmanga.domain}"
 
     @property
-    def id(self) -> str:
+    def _id(self) -> str:
         parts = self.url.split("/")
-        return f"1stkissmanga_{parts[-1] or parts[-2]}"
+        return parts[-1] or parts[-2]
 
-    @staticmethod
-    def is_valid(url: str) -> bool:
-        return any(domain in url for domain in ONEkissmanga.all_domains())
-
-    @staticmethod
-    def valid_id(id: str) -> bool:
-        return id.startswith("1stkissmanga_")
-
-    @staticmethod
-    def id_to_url(id: str) -> str:
-        return f"https://{ONEkissmanga.domain}/manga/{id.replace('1stkissmanga_', '')}"
 
     @staticmethod
     @static_exists("https://1stkissmanga.me/wp-admin/admin-ajax.php")
@@ -274,10 +249,6 @@ class ONEkissmanga(BaseSource):
             logger.error(f"Error searching for {query} on {ONEkissmanga.domain}: {e}")
 
         return results
-
-    @staticmethod
-    def all_domains() -> list[str]:
-        return [ONEkissmanga.domain] + ONEkissmanga.alternate_domains
 
     @exists
     def get_info(self) -> MangaInfo:
@@ -361,25 +332,14 @@ class Bato(BaseSource):
 
     def __init__(self, url: str):
         super().__init__(url)
-        self.headers["referer"] = "https://bato.to/"
         self.use_selenium_in_get_chapter_img_urls = True
 
-    @staticmethod
-    def is_valid(url: str) -> bool:
-        return any(domain in url for domain in Bato.all_domains())
-
-    @staticmethod
-    def all_domains() -> list[str]:
-        return [Bato.domain] + Bato.alternate_domains
 
     @property
-    def id(self) -> str:
+    def _id(self) -> str:
         parts = self.url.split("/")
-        return "bato_" + "_".join(parts[-2:])
+        return "_".join(parts[-2:])
 
-    @staticmethod
-    def valid_id(id: str) -> bool:
-        return id.startswith("bato_")
 
     @staticmethod
     def id_to_url(id: str) -> str:

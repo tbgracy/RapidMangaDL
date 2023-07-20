@@ -34,7 +34,10 @@ def prompt(query=None):
             validate=lambda x: True if len(x) > 0 else "Must be at least 1 character",
         ).ask()
     while True:
-        mangas = Manga.search(query=query)
+        if "https://" in query or "http://" in query:
+            mangas = [Manga.autodetect(query)]
+        else:
+            mangas = Manga.search(query=query)
         if len(mangas) == 0:
             print("No results found.")
             query = qs.text(

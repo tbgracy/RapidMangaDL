@@ -332,123 +332,178 @@ class Manga:
             f.write(res.content)
         return path
 
-    def chapters_exists(
-        self, inputs, chapters: list[Chapter]
-    ) -> dict[Union[str, int], list[Chapter]]:
+    def chapters_exists(self, *querys, chapters: list[Chapter], merger="and"):
         """
         Checks if the given inputs are valid chapters
 
         Parameters
         ----------
-        inputs : Union[str, int, list[str], list[int]]
+        querys : Union[str, int, list[str], list[int]]
             The inputs to check
         chapters : list[Chapter]
             The chapters to check against
+        merger: str
+            Merge On
 
         Returns
         -------
-        dict[Union[str, int], list[Chapter]]
-            A dict with the inputs as keys and the chapters as values
+            list[Chapter]
 
         Examples
+        --------
             >>> chapters_exists("1", manga.chapters)
             >>> chapters_exists(["1", "2"], manga.chapters)
         """
 
-        if inputs is None:
-            return {}
+        text = "  "
+        merger = merger.lower()[0]
+        for i, query in enumerate(querys):
+            if isinstance(query, list):
+                if len(query) == 2:
+                    if merger == "r":
+                        text += f"{query[0]-query[1]},"
+                        continue
+                text += ",".join([str(i) for i in query])
+                text += ","
 
-        if isinstance(inputs, str):
-            inputs = [inputs]
+            elif isinstance(query, str) or isinstance(query, int):
+                query = str(query)
+                if merger == "r":
+                    flag = False
+                    if text[-1] != "-":
+                        flag = True
+                    if "http" in query:
+                        if "-http" in query:
+                            flag = False
+                    elif "-" in query:
+                        flag = False
 
-        chapter_url_dict = {i.url: i for i in chapters}
-        chapters_title_dict = {i.title: i for i in chapters}
-        selected_chapters = {}
+                    if flag:
+                        text += f"{query}-"
+                        continue
 
-        for i in inputs:
-            if not i:
-                selected_chapters[i] = []
+                text += f"{query},"
 
-            if isinstance(i, str):
-                if "ID_" in i:
-                    if "-ID_" in i:
-                        vals = txt_split(i, "-", split="ID_")
-                        sid = -1
-                        eid = -1
-                        for idx, v in enumerate(chapters):
-                            if v.eqal_id(vals[0].replace("ID_", "")):
-                                sid = idx
-                            if v.eqal_id(vals[1].replace("ID_", "")):
-                                eid = idx
-                        if sid > -1 and eid > -1:
-                            selected_chapters[i] = chapters[sid:eid]
+        text = text.strip()
+        if text[-1] == "-" or text[-1] == ",":
+            text = text[:-1]
+
+        exps = [x.strip() for x in text.split(",")]
+        inputs = [x.replace(" ", "") for x in exps if x]
+
+        int_range = re.compile(r"(\d+)-(\d+)")
+        id_range_exists = re.compile(r"-ID_")
+        http_range_exists = re.compile(r"-https?://")
+        last_pat = re.compile(r"(last|latest)(\d+)?")
+
+        # singels
+        int_single = re.compile(r"\d+")
+        id_single = re.compile(r"ID_([\w-]+)")
+        http_single = re.compile(r"https://[\w-]+")
+
+        url_dict = {x.url: i for i, x in enumerate(chapters)}
+        id_dict = {x.id: i for i, x in enumerate(chapters)}
+
+        matches = []
+        for inp in inputs:
+            irm = int_range.match(inp)
+            if irm:
+                start = int(irm.group(1)) - 1
+                end = int(irm.group(2)) - 1
+
+                if start < 0 or end < 0:
+                    print("Invalid range", inp)
+                    continue
+                if start > end:
+                    print("Invalid range", inp)
+                    continue
+                if end >= len(chapters):
+                    print("Invalid range", inp)
+
+                matches.extend(chapters[start : end + 1])
+                continue
+
+            idm = id_range_exists.search(inp)
+            if idm:
+                parts = inp.split("-ID_")
+                if len(parts) == 2:
+                    s = parts[0].replace("ID_", "")
+                    e = parts[1]
+                    if s in id_dict and e in id_dict:
+                        start = id_dict[s]
+                        end = id_dict[e]
+                        matches.extend(chapters[start : end + 1])
                     else:
-                        for idx, v in enumerate(chapters):
-                            if v.eqal_id(i.replace("ID_", "")):
-                                selected_chapters[i] = [chapters[idx]]
-                                break
-
-                elif i.startswith("latest") or i.startswith("last"):
-                    ii = i.replace("latest", "").replace("last", "")
-                    ii = replace_unimportant(ii)
-                    if ii.isdigit():
-                        int_ii = int(ii)
-                        selected_chapters[i] = chapters[-int_ii:]
-                    else:
-                        selected_chapters[i] = chapters[-5:]
-
-                elif i.count("http") == 1:
-                    if i in chapter_url_dict:
-                        selected_chapters[i] = [chapter_url_dict[i]]
-
-                elif i.isdigit():
-                    int_i = int(i)
-                    if int_i < len(chapters):
-                        selected_chapters[str(i)] = [chapters[int_i]]
-
-                elif "," in i:
-                    if "http" in i:
-                        vals = txt_split(i, ",")
-                    else:
-                        ii = replace_unimportant(i, but=["-", ","])
-                        vals = [a.strip() for a in ii.split(",")]
-                    schapters = self.chapters_exists(vals, chapters)
-                    selected_chapters[i] = [i for a in schapters.values() for i in a]
-
-                elif "-" in i:
-                    if "http" in i and "://" in i:
-                        vals = txt_split(i, "-")
-                    else:
-                        ii = replace_unimportant(i, but=["-", ","])
-                        vals = [i.strip() for i in ii.split("-")]
-
-                    schapters = self.chapters_exists(vals, chapters)
-                    ct1 = chapters.count(schapters[vals[0]][0])
-                    start_index = -1
-                    if ct1 > 0:
-                        start_index = chapters.index(schapters[vals[0]][0])
-                    ct2 = chapters.count(schapters[vals[1]][0])
-                    end_index = -1
-                    if ct2 > 0:
-                        end_index = chapters.index(schapters[vals[1]][0])
-                    if start_index > -1 and end_index > -1:
-                        selected_chapters[i] = chapters[start_index:end_index]
-
-                elif i == "all":
-                    selected_chapters[i] = chapters
-
+                        print(f"ID not found: {s} or {e}")
                 else:
-                    if i in chapters_title_dict:
-                        selected_chapters[i] = [chapters_title_dict[i]]
+                    print(f"Invalid ID Range: {inp}")
+                continue
 
-            elif isinstance(i, int):
-                if i < len(chapters):
-                    selected_chapters[i] = [chapters[i]]
+            httpm = http_range_exists.search(inp)
+            if httpm:
+                parts = inp.split("-http")
+                if len(parts) == 2:
+                    s = parts[0]
+                    e = "http" + parts[1]
+                    if s in url_dict and e in url_dict:
+                        start = url_dict[s]
+                        end = url_dict[e]
+                        matches.extend(chapters[start : end + 1])
+                    else:
+                        print(f"URL not found: {s} or {e}")
+                else:
+                    print(f"Invalid URL Range: {inp}")
+                continue
 
-            elif isinstance(i, Chapter):
-                selected_chapters[i] = [i]
+            lastm = last_pat.match(inp)
+            if lastm:
+                start = -1
+                end = int(lastm.group(2)) if lastm.group(2) else 5
+                matches.extend(chapters[start:end])
+                continue
 
-        return selected_chapters
+            ism = int_single.match(inp)
+            if ism:
+                start = int(ism.group(0)) - 1
+                end = start
+
+                if start < 0:
+                    print("Invalid chapter", inp)
+                    continue
+                if start >= len(chapters):
+                    print("Invalid chapter", inp)
+                    continue
+
+                matches.append(chapters[start])
+
+                continue
+
+            idsm = id_single.match(inp)
+            if idsm:
+                s = idsm.group(1)
+                if s in id_dict:
+                    start = id_dict[s]
+                    end = start
+                    matches.append(chapters[start])
+                else:
+                    print(f"Invalid ID: {s}")
+                continue
+
+            httpm = http_single.match(inp)
+            if httpm:
+                s = httpm.group(0)
+                if s in url_dict:
+                    start = url_dict[s]
+                    end = start
+                    matches.append(chapters[start])
+                else:
+                    print(f"Invalid URL: {s}")
+                continue
+
+        if matches:
+            return matches
+        else:
+            return []
 
     def _get_save_chapters_str(self, selected_chapters: list[Chapter]):
         # if len is less than 4 then just indexs else range and total chapters
@@ -461,6 +516,8 @@ class Manga:
         self,
         selected: Union[str, int, Chapter, None],
         exclude: Union[str, int, Chapter, None] = None,
+        smerge="and",
+        emerge="and",
     ):
         """
         Selects the chapters to download
@@ -483,27 +540,15 @@ class Manga:
 
         self.set_info()
 
-        selected_chapters = self.chapters_exists(selected, self.chapters)
-        chapters = []
-        for i in selected_chapters.values():
-            chapters.extend(i)
+        chapters = self.chapters_exists(selected, chapters=self.chapters, merger=smerge)
 
         if exclude:
-            selected_excluded_chapters = self.chapters_exists(exclude, self.chapters)
-            excluded_chapters = []
-            for i in selected_excluded_chapters.values():
-                excluded_chapters.extend(i)
-            chapters = [i for i in chapters if i not in excluded_chapters]
+            selected_excluded_chapters = self.chapters_exists(
+                exclude, chapters=self.chapters, merger=emerge
+            )
+            chapters = [i for i in chapters if i not in selected_excluded_chapters]
 
-        chapters_url_dict = {i.url: [0, i] for i in chapters}
-        for i in chapters:
-            chapters_url_dict[i.url][0] += 1
-
-        self.chapters = []
-        for i in chapters_url_dict.values():
-            if i[0] > 0:
-                self.chapters.append(i[1])
-
+        self.chapters = list(set(chapters))
         self._save_chapters_str = f"{self._get_save_chapters_str(self.chapters)}"
 
         logger.info(f"Selected {len(self.chapters)} chapters")

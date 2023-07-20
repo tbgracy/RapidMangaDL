@@ -56,16 +56,29 @@ class MangaInfo:
         return json.dumps(self.to_json(), indent=4)
 
 
+class classproperty(property):
+    def __get__(self, cls, owner):
+        return classmethod(self.fget).__get__(None, owner)() # type: ignore
+
+
 class BaseSource:
+    domain = "base.com"
+    alternate_domains = ["base.me"]
+
     def __init__(self, url: str):
         self.url = url
         self.temp_dir = os.environ.get("TEMP_DIR", "tmp")
         self.headers: dict = Headers(headers=True).generate()
+        self.headers["referer"] = f"https://{self.domain}/"
         self.use_selenium_in_get_chapter_img_urls = False
 
     @property
     def current_domain(self) -> str:
         return urlparse(self.url).netloc
+
+    @classproperty
+    def name(cls):
+        return cls.__name__.lower() # type: ignore
 
     @staticmethod
     def get_source(url: str):
@@ -78,21 +91,33 @@ class BaseSource:
         )
 
     @property
-    def id(self) -> str:
-        return f"base_"
+    def _id(self) -> str:
+        return self.normal_id(self.url)
 
-    def chapter_id(self, url: str) -> str:
+    @property
+    def id(self) -> str:
+        return f"{self.name}_{self._id}"
+
+    @staticmethod
+    def normal_id(url: str) -> str:
         if url.endswith("/"):
             return url[:-1].split("/")[-1]
         return url.split("/")[-1]
 
-    @staticmethod
-    def is_valid(url: str) -> bool:
-        return any(domain in url for domain in BaseSource.all_domains())
+    def chapter_id(self, url: str) -> str:
+        return self.normal_id(url)
 
-    @staticmethod
-    def valid_id(id: str) -> bool:
-        return False
+    @classmethod
+    def all_domains(cls) -> list[str]:
+        return [cls.domain] + cls.alternate_domains
+
+    @classmethod
+    def is_valid(cls, url: str) -> bool:
+        return any(domain in url for domain in cls.all_domains())
+
+    @classmethod
+    def valid_id(cls, id: str) -> bool:
+        return id.startswith(f"{cls.name}_")
 
     @staticmethod
     def search(query: str) -> list[MangaInfo]:
@@ -107,9 +132,9 @@ class BaseSource:
     def from_json(cls, data: dict):
         return cls(data["url"])
 
-    @staticmethod
-    def id_to_url(id: str) -> str:
-        return ""
+    @classmethod
+    def id_to_url(cls, id: str) -> str:
+        return f"https://{cls.domain}/manga/{id.replace(f'{cls.name}_', '')}"
 
     def get_info(self) -> MangaInfo:
         return MangaInfo("Manga Not found", "/404.html")
@@ -117,16 +142,11 @@ class BaseSource:
     def get_chapter_img_urls(self, chapter_url: str, *args, **kw) -> list[str]:
         return []
 
-
     def __str__(self) -> str:
         return f"{self.__class__.__name__}({self.url})"
 
     def __repr__(self) -> str:
         return self.__str__()
-
-    @staticmethod
-    def all_domains() -> list[str]:
-        return []
 
     # in operator
     def __contains__(self, txt) -> bool:

@@ -126,7 +126,7 @@ def search():
     except Exception as e:
         suc = False
         error = "Unknown error"
-        logger.error(f"Error getting search results: {e}")
+        logger.error(f"Error getting search results: {e}", exc_info=True)
 
     data = {
         "success": suc,
