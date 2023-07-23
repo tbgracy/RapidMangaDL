@@ -24,9 +24,7 @@ from tools import (
     create_failure_image,
     get_file_name,
     URLFile,
-    replace_unimportant,
     logger,
-    txt_split,
     tqdm,
     driver_manager as manager,
     get_app_path,
@@ -35,46 +33,25 @@ from tools import (
 
 from tools.exceptions import MangaNotFound
 
-from manga_sources import Chapter, MangaInfo, BaseSource, get_source, sources  # type: ignore
-
-# except Exception as e:
-#     from manga_dl.tools import (
-#         Downloader,
-#         PDFChapter,
-#         PDF,
-#         create_failure_image,
-#         get_file_name,
-#         URLFile,
-#         replace_unimportant,
-#         logger,
-#         http_split,
-#         tqdm,
-#         driver_manager as manager,
-#         get_app_path,
-#         share_progress_bar,
-#     )
-
-#     from manga_dl.tools.exceptions import MangaNotFound
-#     from manga_dl.manga_sources import (
-#         Chapter,
-#         MangaInfo,
-#         BaseSource,
-#         get_source,
-#         sources,
-#     )
+from manga_sources import Chapter, MangaInfo, BaseSource, get_source, sources
 
 
 app_path = get_app_path()
-temp_dir = os.path.join(app_path, "temp")
+temp_dir = os.path.join(app_path, "tmp")
 os.environ["TEMP_DIR"] = os.environ.get("TEMP_DIR", temp_dir)
 temp_dir = os.environ["TEMP_DIR"]
 if not os.path.exists(temp_dir):
     os.makedirs(temp_dir)
 
 
+class classproperty(property):
+    def __get__(self, cls, owner):
+        return classmethod(self.fget).__get__(None, owner)()  # type: ignore
+
+
 class Manga:
     """
-    Manga object
+    Manga
 
     Atributes:
     ----------
@@ -128,9 +105,26 @@ class Manga:
 
         self.check_temp_dir()
 
-    def clear_temp_dir(self):
-        shutil.rmtree(self.temp_dir)
-        os.makedirs(self.temp_dir)
+    @staticmethod
+    def clear_cache():
+        """
+        Clears all cache
+        """
+
+        temp_dir = os.environ.get("TEMP_DIR", "tmp")
+        if os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir)
+        os.makedirs(temp_dir)
+
+    @classproperty
+    def cache_path(cls):
+        return os.path.abspath(os.environ.get("TEMP_DIR", "tmp"))
+    
+    @classproperty
+    def save_path(cls):
+        return os.path.join(get_app_path(), "Downloads")
+    
+    
 
     @property
     def genre(self) -> str:
@@ -209,7 +203,9 @@ class Manga:
     def autodetect(cls, inp, source: str = "") -> "Manga":
         if isinstance(inp, str):
             if "http" in inp:
-                return cls(inp)
+                manga = cls(inp)
+                manga.set_info()
+                return manga
             else:
                 most_likely = None
                 mangas = Manga.search(inp)
@@ -388,6 +384,7 @@ class Manga:
         if text[-1] == "-" or text[-1] == ",":
             text = text[:-1]
 
+        
         exps = [x.strip() for x in text.split(",")]
         inputs = [x.replace(" ", "") for x in exps if x]
 
@@ -412,13 +409,13 @@ class Manga:
                 end = int(irm.group(2)) - 1
 
                 if start < 0 or end < 0:
-                    print("Invalid range", inp)
+                    logger.error("Invalid range", inp)
                     continue
                 if start > end:
-                    print("Invalid range", inp)
+                    logger.error("Invalid range", inp)
                     continue
                 if end >= len(chapters):
-                    print("Invalid range", inp)
+                    logger.error("Invalid range", inp)
 
                 matches.extend(chapters[start : end + 1])
                 continue
@@ -434,9 +431,9 @@ class Manga:
                         end = id_dict[e]
                         matches.extend(chapters[start : end + 1])
                     else:
-                        print(f"ID not found: {s} or {e}")
+                        logger.error(f"ID not found: {s} or {e}")
                 else:
-                    print(f"Invalid ID Range: {inp}")
+                    logger.error(f"Invalid ID Range: {inp}")
                 continue
 
             httpm = http_range_exists.search(inp)
@@ -450,16 +447,15 @@ class Manga:
                         end = url_dict[e]
                         matches.extend(chapters[start : end + 1])
                     else:
-                        print(f"URL not found: {s} or {e}")
+                        logger.error(f"URL not found: {s} or {e}")
                 else:
-                    print(f"Invalid URL Range: {inp}")
+                    logger.error(f"Invalid URL Range: {inp}")
                 continue
 
             lastm = last_pat.match(inp)
             if lastm:
-                start = -1
                 end = int(lastm.group(2)) if lastm.group(2) else 5
-                matches.extend(chapters[start:end])
+                matches.extend(chapters[-end:])
                 continue
 
             ism = int_single.match(inp)
@@ -468,10 +464,10 @@ class Manga:
                 end = start
 
                 if start < 0:
-                    print("Invalid chapter", inp)
+                    logger.error("Invalid chapter", inp)
                     continue
                 if start >= len(chapters):
-                    print("Invalid chapter", inp)
+                    logger.error("Invalid chapter", inp)
                     continue
 
                 matches.append(chapters[start])
@@ -486,7 +482,7 @@ class Manga:
                     end = start
                     matches.append(chapters[start])
                 else:
-                    print(f"Invalid ID: {s}")
+                    logger.error(f"Invalid ID: {s}")
                 continue
 
             httpm = http_single.match(inp)
@@ -497,7 +493,7 @@ class Manga:
                     end = start
                     matches.append(chapters[start])
                 else:
-                    print(f"Invalid URL: {s}")
+                    logger.error(f"Invalid URL: {s}")
                 continue
 
         if matches:
@@ -514,8 +510,8 @@ class Manga:
 
     def select_chapters(
         self,
-        selected: Union[str, int, Chapter, None],
-        exclude: Union[str, int, Chapter, None] = None,
+        selected: Union[str, int, Chapter, None, list[Union[str, int, Chapter]]],
+        exclude: Union[str, int, Chapter, None, list[Union[str, int, Chapter]]] = None,
         smerge="and",
         emerge="and",
     ):
@@ -539,6 +535,14 @@ class Manga:
         """
 
         self.set_info()
+        if isinstance(selected, list):
+            if isinstance(selected[0], Chapter):
+                self.chapters = selected  # type: ignore
+                logger.info(f"Selected {len(self.chapters)} chapters")
+                self._save_chapters_str = (
+                    f"{self._get_save_chapters_str(self.chapters)}"  # type: ignore
+                )
+                return self.chapters
 
         chapters = self.chapters_exists(selected, chapters=self.chapters, merger=smerge)
 
@@ -548,7 +552,10 @@ class Manga:
             )
             chapters = [i for i in chapters if i not in selected_excluded_chapters]
 
-        self.chapters = list(set(chapters))
+        chapters_dict = {i.id: i for i in self.chapters}
+        chapters = [chapters_dict[i.id] for i in chapters]
+        self.chapters = chapters
+        
         self._save_chapters_str = f"{self._get_save_chapters_str(self.chapters)}"
 
         logger.info(f"Selected {len(self.chapters)} chapters")
@@ -574,7 +581,7 @@ class Manga:
             img.save(qpath, optimize=True, quality=quality)
             img.close()
         except Exception as e:
-            logger.error(f"Error lowering quality: {e}", exc_info=True)
+            logger.error(f"Error lowering quality: {e}")
             logger.info(f"Saving image without lowering quality")
             shutil.copy(path, qpath)
 
@@ -633,7 +640,7 @@ class Manga:
         else:
             if not manager.chromedriver_installed:
                 logger.error(
-                    f"You need chrome to download from {self.source.current_domain}"
+                    f"You need chrome to download for {self.source.current_domain}"
                 )
                 logger.error("Please install chrome and try again")
                 sys.exit(1)
@@ -674,9 +681,7 @@ class Manga:
 
             if downloaded_files:
                 downloaded_files, failed_files = self.check_imgs(downloaded_files)
-
                 self.remove_files([i[1] for i in failed_files])
-
                 checked_files.extend(downloaded_files)
 
                 iurls = [i[0] for i in failed_files] + failed_urls
@@ -688,10 +693,12 @@ class Manga:
             logger.error(f"Total failed images: {len(iurls)}. Try again later")
             logger.info("Continuing with failed images")
 
-        failed_files = [
-            URLFile(i, os.path.join(self.temp_dir, self.create_failure_image(i)))
-            for i in iurls
-        ]
+
+        failed_files = []
+        with cf.ThreadPoolExecutor() as executor:
+            for result in executor.map(self.create_failure_image, iurls):
+                failed_files.append(result)
+
 
         all_files: list[URLFile] = checked_files + failed_files
 
@@ -732,7 +739,7 @@ class Manga:
             filenames = chapter.img_filenames
             if isinstance(book, epub.EpubBook):
                 epub_chapter = epub.EpubHtml(
-                    title=ch_id, file_name=f"{ch_id}.xhtml", lang="en"
+                    title=title, file_name=f"{ch_id}.xhtml", lang="en"
                 )
 
                 epub_chapter.content = self.chapter_template(title, filenames)

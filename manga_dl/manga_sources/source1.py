@@ -10,7 +10,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from selenium.webdriver.common.by import By
 
 
-from tools.utils import logger
+from tools.utils import logger, Driver
 from tools.exceptions import MangaNotFound, InvalidMangaUrl
 from bs4 import BeautifulSoup
 from fake_headers import Headers
@@ -23,12 +23,12 @@ from .utils import MangaInfo, Chapter, scraper, static_exists, exists
 class MangaNato(BaseSource):
     domain = "manganato.com"
     alternate_domains = ["chapmanganato.com"]
+    manga_format = "https://{alternate_domains[0]}/manga-{ID}"
 
     def __init__(self, url: str):
         url = MangaNato.valid_url(url)
         super().__init__(url)
-        self.headers["referer"] = f"https://{self.alternate_domains[0]}/"
-
+        self.headers["Referer"] = f"https://{self.alternate_domains[0]}/"
 
     @staticmethod
     def valid_url(url: str) -> str:
@@ -88,11 +88,6 @@ class MangaNato(BaseSource):
         if self.url.endswith("/"):
             url = self.url[:-1]
         return url.split("/")[-1].replace("manga-", "")
-
-
-    @classmethod
-    def id_to_url(cls,id: str) -> str:
-        return super().id_to_url(id).replace(cls.domain, cls.alternate_domains[0]).replace("manga/", "manga-")
 
     @exists
     def get_info(self) -> MangaInfo:
@@ -203,7 +198,6 @@ class MangaNato(BaseSource):
         return imgs
 
 
-
 class ONEkissmanga(BaseSource):
     domain = "1stkissmanga.me"
     alternate_domains = ["1stkissmanga.com", "1stkissmanga.io"]
@@ -216,7 +210,6 @@ class ONEkissmanga(BaseSource):
         parts = self.url.split("/")
         return parts[-1] or parts[-2]
 
-
     @staticmethod
     @static_exists("https://1stkissmanga.me/wp-admin/admin-ajax.php")
     def search(query: str) -> list[MangaInfo]:
@@ -227,7 +220,7 @@ class ONEkissmanga(BaseSource):
             headers = Headers().generate()
             headers.update(
                 {
-                    "referer": "https://1stkissmanga.me/",
+                    "Referer": "https://1stkissmanga.me/",
                     "x-requested-with": "XMLHttpRequest",
                     "content-type": "application/x-www-form-urlencoded;",
                     "origin": "https://1stkissmanga.me",
@@ -328,24 +321,24 @@ class ONEkissmanga(BaseSource):
 
 class Bato(BaseSource):
     domain = "bato.to"
-    alternate_domains = ["battwo.com", "batotwo.com", "batotoo.com", "mto.to", "comiko.net", "mangatoto.com"]
+    alternate_domains = [
+        "battwo.com",
+        "batotwo.com",
+        "batotoo.com",
+        "mto.to",
+        "comiko.net",
+        "mangatoto.com",
+    ]
+    manga_format = "https://{domain}/series/{ID.replace('_', '/')}"
 
     def __init__(self, url: str):
         super().__init__(url)
         self.use_selenium_in_get_chapter_img_urls = True
 
-
     @property
     def _id(self) -> str:
         parts = self.url.split("/")
         return "_".join(parts[-2:])
-
-
-    @staticmethod
-    def id_to_url(id: str) -> str:
-        return (
-            f"https://{Bato.domain}/series/{id.replace('bato_', '').replace('_', '/')}"
-        )
 
     @staticmethod
     @static_exists("https://bato.to/search")
@@ -411,6 +404,30 @@ class Bato(BaseSource):
             logger.error(f"Error searching for {query} in {Bato.domain}: {e}")
 
         return results
+
+    @staticmethod
+    def parse_views(txt) -> str:
+        pat = re.compile(r"(\d+\.?\d*)([KMBT]?)")
+        matches = pat.findall(txt)
+        if not matches:
+            return txt
+        else:
+            total = 0
+            for m in matches:
+                num = float(m[0])
+                if m[1] == "K":
+                    num *= 1000
+                elif m[1] == "M":
+                    num *= 1000000
+                elif m[1] == "B":
+                    num *= 1000000000
+                elif m[1] == "T":
+                    num *= 1000000000000
+
+                total += num
+            # convert to k
+            total = int(total / 1000)
+            return f"{total}K"
 
     @exists
     def get_info(self) -> MangaInfo:
@@ -487,6 +504,7 @@ class Bato(BaseSource):
                     views = " ".join([i.text for i in views])  # type: ignore
                     date = extra.select_one("i.ps-3").text.strip()  # type: ignore
 
+                views = Bato.parse_views(views)
                 chapters.append(
                     Chapter(
                         title=chtitle, url=link, views=views, date=date, source=self
@@ -514,20 +532,29 @@ class Bato(BaseSource):
     @exists
     def get_chapter_img_urls(self, chapter_url: str, **kw) -> list[str]:
         results = []
+        got_driver = False
+        driver: Driver = kw.get("driver", None)
         for i in range(2):
             try:
-                driver = kw.get("driver", None)
                 if not driver:
-                    raise Exception(f"Cannot get img urls in {Bato.domain} without driver")
+                    raise Exception(
+                        f"Cannot get img urls in {self.domain} without driver"
+                    )
+
+                got_driver = True
+
                 driver.get(chapter_url)
                 imgs = driver.find_elements(By.XPATH, "//div[@id='viewer']//img")
                 for img in imgs:
                     results.append(img.get_attribute("src"))
-                    
+
                 if results:
                     break
             except Exception as e:
                 logger.error(f"Error getting chapter image urls for {chapter_url}: {e}")
+
+        if got_driver:
+            driver.usable = True
 
         if "pbar" in kw:
             kw["pbar"].update(1)

@@ -21,8 +21,64 @@ function getViews(views) {
 }
 
 function getTime(str) {
-  const date = new Date(str);
-  return date.getTime();
+  let time = null;
+  if (str.includes("ago")) {
+    // change a year ago or a day ago, etc to 1 year ago or 1 day ago
+    const replacers = {
+      "a year ago": "1 year ago",
+      "a day ago": "1 day ago",
+      "an hour ago": "1 hour ago",
+      "a minute ago": "1 minute ago",
+      "a second ago": "1 second ago",
+      "just now": "1 second ago",
+    };
+
+    for (const [key, value] of Object.entries(replacers)) {
+      // convert to lower case
+      const lowerStr = str.toLowerCase();
+      if (lowerStr.includes(key)) {
+        str = str.replace(key, value);
+        break;
+      }
+    }
+
+    const ago = parseInt(str, 10);
+    if (!isNaN(ago)) {
+      // if days,hours,minutes,seconds ago
+      const currentDate = new Date();
+      if (str.includes("year")) {
+        currentDate.setFullYear(currentDate.getFullYear() - ago);
+      } else if (str.includes("days")) {
+        currentDate.setDate(currentDate.getDate() - ago);
+      } else if (str.includes("hours")) {
+        currentDate.setHours(currentDate.getHours() - ago);
+      } else if (str.includes("min")) {
+        currentDate.setMinutes(currentDate.getMinutes() - ago);
+      } else if (str.includes("sec")) {
+        currentDate.setSeconds(currentDate.getSeconds() - ago);
+      }
+      time = currentDate.getTime();
+    }
+  } else if (str.includes("Today")) {
+    const hoursAgo = parseInt(relativeTime, 10);
+    if (!isNaN(hoursAgo)) {
+      const currentDate = new Date();
+      currentDate.setHours(currentDate.getHours() - hoursAgo);
+      time = currentDate.getTime();
+    }
+  } else if (str.includes("Yesterday")) {
+    const hoursAgo = parseInt(relativeTime, 10);
+    if (!isNaN(hoursAgo)) {
+      const currentDate = new Date();
+      currentDate.setHours(currentDate.getHours() - hoursAgo);
+      time = currentDate.getTime();
+    }
+  } else {
+    const date = new Date(str);
+    time = date.getTime();
+  }
+
+  return isNaN(time) ? 0 : time;
 }
 
 // if click on the image show the modal
@@ -109,7 +165,9 @@ function changeProgress(value, progress) {
   if (value == "100%") {
     $("#downloadBtn").find("span").text("Download");
   } else {
-    $("#downloadBtn").find("span").text(`${progress.desc} ${value} ${progress.current}/${progress.total}`);
+    $("#downloadBtn")
+      .find("span")
+      .text(`${progress.desc} ${value} ${progress.current}/${progress.total}`);
   }
 
   console.log("Changing progress", value);
@@ -139,7 +197,7 @@ function updateProgress() {
       console.log(status);
       console.log(error);
       if (interval) {
-        changeProgress(100, { desc: "Error" , current: 0, total: 0});
+        changeProgress(100, { desc: "Error", current: 0, total: 0 });
         clearInterval(interval);
       }
     },

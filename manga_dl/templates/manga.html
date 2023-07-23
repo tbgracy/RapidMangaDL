@@ -301,6 +301,8 @@
   document.title = "{{ manga.title }}";
   const mangaID = "{{ manga.id }}";
 
+  $("#sort").click();
+
  async function setFaviconFromImageUrl(imageUrl) {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
@@ -367,18 +369,16 @@
     ...sortedChapters.slice(-1),
   ];
 
-  const topChapterIDs = topChapters.map((chapter) => {
-    return chapter.id;
-  });
+  const topChapterIds = topChapters.map((chapter) => chapter.id);
 
   let flag = true;
-  topChapterIds.forEach(async (chapterID) => {
+  topChapterIds.forEach((chapter_id) => {
     const id = "{{ manga.id | safe}}";
     const url = "/api/manga/imgs";
     $.ajax({
       type: "POST",
       url: url,
-      data: JSON.stringify({ manga_id: id, chapter_id: chapterID }),
+      data: JSON.stringify({ manga_id: id, chapter_id: chapter_id }),
       contentType: "application/json",
       dataType: "json",
       success: function (data) {

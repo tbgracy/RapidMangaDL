@@ -18,3 +18,4 @@ nest-asyncio
 pytimedinput>=2.0.1
 selenium>=4.0.0
 chromedriver-autoinstaller>=0.4.1
+Brotli>=1.0.9

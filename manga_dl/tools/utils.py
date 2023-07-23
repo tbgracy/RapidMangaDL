@@ -30,7 +30,6 @@ _utils_path = os.path.dirname(os.path.abspath(__file__))
 error_img_path = os.path.join(os.path.dirname(_utils_path), "public", "error.png")
 
 
-
 def share_progress_bar(total_size: float, current_value: float, desc: str = ""):
     os.environ["PROGRESS_BAR"] = json.dumps(
         {"total": total_size, "current": current_value, "desc": desc}
@@ -95,7 +94,9 @@ class ColorFormatter(logging.Formatter):
         record.msg = message
         return super().format(record)
 
+
 _logger: list[logging.Logger] = []
+
 
 def get_logger() -> logging.Logger:
     if _logger:
@@ -122,7 +123,9 @@ def get_logger() -> logging.Logger:
         _logger.append(logger)
         return logger
 
+
 logger = get_logger()
+
 
 def create_failure_image(failure_path, url):
     img = Image.open(error_img_path)
@@ -205,13 +208,20 @@ def txt_split(txt, sep, split="http"):
 
 
 class Driver(webdriver.Chrome):
-    def __init__(self, options, *args, **kwargs):
+    def __init__(self, options:webdriver.ChromeOptions, *args, **kwargs):
         self.options = options
         self.args = args
         self.kwargs = kwargs
         self.running = False
         self.usable = True
         self._init = False
+    
+    def add_option(self, option):
+        self.options.add_argument(option)
+    
+    def remove_option(self, option):
+        self.options._arguments.remove(option) if option in self.options._arguments else None
+    
 
     def init(self):
         super().__init__(options=self.options, *self.args, **self.kwargs)
@@ -235,6 +245,15 @@ class DriverManager:
         self.manager: dict[str, Driver] = {}
         self.chromedriver_installed = True
 
+        self._chromedrive_checked = False
+        self._quited = False
+
+        self.lock = threading.Lock()
+
+    def check_for_chromedriver(self):
+        if self._chromedrive_checked:
+            return
+
         if os.environ.get("DRIVER_INSTALLATION_CHECKED", "0") == "0":
             try:
                 chromedriver_autoinstaller.install()
@@ -242,11 +261,10 @@ class DriverManager:
                 self.chromedriver_installed = False
                 logger.error(f"Looks like chrome is not installed: {e}")
             os.environ["DRIVER_INSTALLATION_CHECKED"] = "1"
-
-            
-        self.lock = threading.Lock()
+        self._chromedrive_checked = True
 
     def create_driver(self):
+        self.check_for_chromedriver()
         return Driver(self.driver_options)
 
     def total_running(self):
@@ -267,8 +285,12 @@ class DriverManager:
         options = webdriver.ChromeOptions()
         options.add_argument("--headless")
         options.add_argument("--blink-settings=imagesEnabled=false")
+        options.add_argument("--disable-extensions")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
+        # options.add_argument("start-maximized")
+        # options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        # options.add_experimental_option('useAutomationExtension', False)
 
         return options
 
@@ -278,6 +300,10 @@ class DriverManager:
 
     def wait_for_driver(self) -> tuple[str, webdriver.Chrome]:
         while True:
+            ky, dr = self.get_usable()
+            if ky:
+                return ky, dr # type: ignore
+            
             total = self.total_running()
             if total < self.driver_count:
                 key = get_hash(str(uuid4()))
@@ -285,10 +311,7 @@ class DriverManager:
                 driver.usable = False
                 self.manager[key] = driver
                 return key, driver
-            else:
-                ky, dr = self.get_usable()
-                if ky is not None:
-                    return ky, dr  # type: ignore
+            
             time.sleep(0.1)
 
     def release_driver(self, key: str):
@@ -299,16 +322,30 @@ class DriverManager:
     def _quit(self):
         logger.info("Quitting drivers...")
 
+        flag = False
         for key, value in self.manager.items():
-            value.close()
+            try:
+                value.quit()
+            except Exception as e:
+                logger.error(f"Error while quitting driver {key}: {e}")
+                flag = True
+        
+        if flag:
+            logger.error("Drivers quited with errors")
+        else:
+            logger.info("Drivers quited successfully")
 
-        logger.info("Drivers quit successfully")
         self.manager = {}
+        self._quited = False
 
     def quit(self) -> threading.Thread:
+        if self._quited:
+            return None # type: ignore
+        
         t = threading.Thread(target=self._quit)
         t.daemon = True
         t.start()
+        self._quited = True
         return t
 
 
@@ -319,5 +356,5 @@ def quit_drivers():
     except Exception as e:
         logger.error(f"Error while quitting drivers: {e}")
 
-driver_manager = DriverManager(2)
 
+driver_manager = DriverManager(2)

@@ -9,11 +9,11 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 try:
     from app import app
-    from tools import logger, run_with_cloudflared
+    from tools import logger, run_with_cloudflared, get_app_path
     from manga import Manga
 except ImportError:
     from manga_dl.app import app
-    from manga_dl.tools import logger, run_with_cloudflared
+    from manga_dl.tools import logger, run_with_cloudflared, get_app_path
     from manga_dl.manga import Manga
 
 
@@ -63,11 +63,11 @@ def prompt(query=None):
         "Download all chapters or a range?", choices=["All", "Select", "Custom"]
     ).ask()
     if choice == "Select":
-        # show all chapters
+        title_dict = {f"{chapter.title} ({chapter.id[-3:]})": chapter for i, chapter in enumerate(manga.chapters)}
         chapters = qs.checkbox(
-            "Select chapters:", choices=[chapter.title for chapter in manga.chapters]
+            "Select chapters:", choices=list(title_dict.keys())
         ).ask()
-        manga.select_chapters(chapters)
+        manga.select_chapters([title_dict[chapter] for chapter in chapters])
     elif choice == "Custom":
         # show example of custom input
         print(helps["chapters"].replace("-c ", ""))
@@ -98,11 +98,16 @@ def prompt(query=None):
     ).ask()
     quality = int(quality)
     # download
+    path = get_app_path()
     for choice in choices:
         if choice == "epub":
-            manga.create_epub(quality=quality)
+            path = manga.create_epub(quality=quality)
         elif choice == "pdf":
-            manga.create_pdf(quality=quality)
+            path = manga.create_pdf(quality=quality)
+    
+    path = os.path.dirname(path)
+    os.system(f'start {os.path.realpath(path)}')
+            
     # ask if user wants to download another manga
     choice = qs.select("Download another manga?", choices=["Yes", "No"]).ask()
     if choice == "Yes":
@@ -123,6 +128,7 @@ def cli(args):
             print("Exiting...")
             sys.exit(0)
 
+        print(f"Total chapters: {manga.total_chapters}")
         manga.select_chapters(args.chapters, exclude=args.exclude)
 
         quality = max(10, min(100, args.quality))
@@ -160,7 +166,7 @@ def parser():
     parser.add_argument(
         "-ss", "--source", help="Select source if multiple sources are found"
     )
-    parser.add_argument("-c", "--chapters", help=helps["chapters"])
+    parser.add_argument("-c", "--chapters", help=helps["chapters"], default="latest 10")
     parser.add_argument("-ex", "--exclude", help=helps["exclude"])
     parser.add_argument(
         "-f",
@@ -230,7 +236,7 @@ def main():
         print("Goodbye!")
         sys.exit(0)
     except Exception as e:
-        logger.error(f"Unexpected error occured {e}",)
+        logger.error(f"Unexpected error occured {e}")
         logger.info(
             "Rest assured, all downloaded files are automatically cached. Run the program again to continue downloading."
         )

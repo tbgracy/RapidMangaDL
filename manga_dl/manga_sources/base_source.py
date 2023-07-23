@@ -8,32 +8,86 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from tools.exceptions import SourceNotFound
+from tools.utils import logger, get_app_path
+from string import Formatter
 
 
 class MangaInfo:
-    def __init__(self, title: str, url: str):
+    """
+    MangaInfo class
+
+    Attributes:
+        title (str): Title of the manga
+        url (str): Url of the manga
+        cover_url (str): Url of the cover image
+        alternative_titles (list): List of alternative titles
+        authors (list): List of authors
+        status (str): Status of the manga
+        genres (list): List of genres
+        description (str): Description of the manga
+        chapters (list): List of chapters
+        total_chapters (int): Total chapters
+        last_chapter (str): Last chapter
+        rank (str): Rank of the manga
+        original_language (str): Original language of the manga
+        translated_language (str): Translated language of the manga
+        artists (list): List of artists
+        last_updated (str): Last updated date
+        views (str): Total views
+        rating (str): Rating of the manga
+        tags (list): List of tags
+        type (str): Type of the manga
+        total_comments (str): Total comments
+        total_bookmarked (str): Total bookmarked
+    """
+
+    def __init__(
+        self,
+        title: str,
+        url: str,
+        cover_url: str = "",
+        alternative_titles: list = [],
+        authors: list = [],
+        status: str = "",
+        genres: list = [],
+        description: str = "",
+        chapters: list = [],
+        total_chapters: int = 0,
+        last_chapter: str = "",
+        rank: str = "",
+        original_language: str = "",
+        translated_language: str = "",
+        artists: list = [],
+        last_updated: str = "",
+        views: str = "",
+        rating: str = "",
+        tags: list = [],
+        type: str = "",
+        total_comments: str = "",
+        total_bookmarked: str = "",
+    ):
         self.title = title
         self.url = url
-        self.cover_url = ""
-        self.alternative_titles = []
-        self.authors = []
-        self.status = ""
-        self.genres = []
-        self.description = ""
-        self.chapters: list = []
-        self.total_chapters = 0
-        self.last_chapter = ""
-        self.rank = ""
-        self.original_language = ""
-        self.translated_language = ""
-        self.artists = []
-        self.last_updated = ""
-        self.views = ""
-        self.rating = ""
-        self.tags = []
-        self.type = ""
-        self.total_comments = ""
-        self.total_bookmarked = ""
+        self.cover_url = cover_url
+        self.alternative_titles = alternative_titles
+        self.authors = authors
+        self.status = status
+        self.genres = genres
+        self.description = description
+        self.chapters: list = chapters
+        self.total_chapters = total_chapters
+        self.last_chapter = last_chapter
+        self.rank = rank
+        self.original_language = original_language
+        self.translated_language = translated_language
+        self.artists = artists
+        self.last_updated = last_updated
+        self.views = views
+        self.rating = rating
+        self.tags = tags
+        self.type = type
+        self.total_comments = total_comments
+        self.total_bookmarked = total_bookmarked
 
     @classmethod
     def from_json(cls, data):
@@ -58,27 +112,45 @@ class MangaInfo:
 
 class classproperty(property):
     def __get__(self, cls, owner):
-        return classmethod(self.fget).__get__(None, owner)() # type: ignore
+        return classmethod(self.fget).__get__(None, owner)()  # type: ignore
 
 
 class BaseSource:
     domain = "base.com"
-    alternate_domains = ["base.me"]
+    alternate_domains = []
+    manga_format = "https://{domain}/manga/{ID}"
 
     def __init__(self, url: str):
         self.url = url
-        self.temp_dir = os.environ.get("TEMP_DIR", "tmp")
+        self.temp_dir = os.environ.get("TEMP_DIR", os.path.join(get_app_path(), "tmp"))
         self.headers: dict = Headers(headers=True).generate()
-        self.headers["referer"] = f"https://{self.domain}/"
+        self.headers["Referer"] = f"https://{self.domain}/"
         self.use_selenium_in_get_chapter_img_urls = False
+
+    @classmethod
+    def id_to_url(cls, id: str) -> str:
+        id = id.replace(f"{cls.name}_", "")
+        variables = [
+            fn for _, fn, _, _ in Formatter().parse(cls.manga_format) if fn is not None
+        ]
+        manga_format = cls.manga_format
+        for var in variables:
+            if "ID" in var:
+                manga_format = manga_format.replace("ID", f"'{id}'")
+            else:
+                manga_format = manga_format.replace(var, f"cls.{var}")
+        return eval("f" + repr(manga_format))
+
+    def is_slow(self) -> bool:
+        return self.use_selenium_in_get_chapter_img_urls
 
     @property
     def current_domain(self) -> str:
-        return urlparse(self.url).netloc
+        return urlparse(self.url).netloc + f" ({'slow' if self.is_slow() else 'fast'})"
 
     @classproperty
     def name(cls):
-        return cls.__name__.lower() # type: ignore
+        return cls.__name__.lower()  # type: ignore
 
     @staticmethod
     def get_source(url: str):
@@ -131,10 +203,6 @@ class BaseSource:
     @classmethod
     def from_json(cls, data: dict):
         return cls(data["url"])
-
-    @classmethod
-    def id_to_url(cls, id: str) -> str:
-        return f"https://{cls.domain}/manga/{id.replace(f'{cls.name}_', '')}"
 
     def get_info(self) -> MangaInfo:
         return MangaInfo("Manga Not found", "/404.html")

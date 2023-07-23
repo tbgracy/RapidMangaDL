@@ -1,9 +1,12 @@
 from .source1 import MangaNato, Bato, ONEkissmanga, BaseSource, Chapter, MangaInfo
+from .source2 import MangaKakalot # Error getting chapter imgs
 
 sources = [MangaNato, Bato, ONEkissmanga]
 
+
 class SourceNotFound(Exception):
     pass
+
 
 def all_domains() -> list[str]:
     return [domain for source in sources for domain in source.all_domains()]

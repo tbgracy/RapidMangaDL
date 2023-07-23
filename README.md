@@ -3,12 +3,10 @@
 RapidMangaDL is a Python package that allows you to swiftly download manga from various sources. It offers multiple ways to interact with the application, including a Command Line Interface (CLI) and an Interactive CLI with a text-based prompt. Additionally, it comes with a web-based GUI to provide a user-friendly experience.
 [Suppoted Sources](/sources.md)
 
+
 ## Installation
-
-You can download windows executable from [Latest Release](https://github.com/shhossain/RapidMangaDL/releases/latest)
-
-Or you can use `pip`:
-
+- Install [Python](https://www.python.org/downloads/) (3.6 or higher)
+- Go to terminal and run the following command
 ```bash
 pip install RapidMangaDL
 ```
@@ -21,7 +19,7 @@ Select specific chapters or a custom range for downloading.
 Choose between downloading the manga in EPUB or PDF format.
 Customize the quality of the images (10 to 100).
 
-# Interactive CLI 
+# Interactive CLI
 
 The Interactive CLI mode provides a user-friendly prompt to search for a manga, select chapters, specify the format, and set image quality.
 
@@ -76,20 +74,20 @@ optional arguments:
   -s QUERY, --query QUERY
                         Search for a manga (This will move to interactive mode with the search results)
   -m MANGA, --manga MANGA
-                        Manga to download 
+                        Manga to download
                         Examples:
                         -m https://manganato.com/manga-az963307 (most reliable)
                         -m manga-id (from web gui something like this managato_uq971673)
                         -m manga-title (Match by similarity, not relaiable)
   -ss SOURCE, --source SOURCE
-                        Source to download from (Examples: -ss manganato | -ss mangakakalot | -ss manganelo | -ss mangasee123) 
+                        Source to download from (Examples: -ss manganato | -ss mangakakalot | -ss manganelo | -ss mangasee123)
   -c CHAPTERS, --chapters CHAPTERS
                         Chapters to download
-                          Examples: 
+                          Examples:
                           -c 1-10 | -c 1,2,3 | -c 1-10, 20-30 | -c 1-10, 20-30, 40, 50, 60-70 | -c latest 10 | -c Chapter 1, Chapter 2 |
                           -c https://manganato.com/manga-az963307/chapter-1-https://manganato.com/manga-az963307/chapter-2
                           -c last (last 5 chapters)
-                          
+
   -ex EXCLUDE, --exclude EXCLUDE
                         Chapters to exclude (same rules apply as --chapters)
   -f {epub,pdf}, --format {epub,pdf}
@@ -130,7 +128,6 @@ manga.set_info()
 
 print(manga.title)
 ```
-
 
 Selecting chapters
 
@@ -173,3 +170,7 @@ app.run()
 # or
 app.run(host="localhost", port=80) # app is a Flask app
 ```
+
+
+# Contributing
+See [CONTRIBUTING.md](CONTRIBUTING.md)

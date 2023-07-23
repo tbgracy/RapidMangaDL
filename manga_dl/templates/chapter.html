@@ -1,6 +1,6 @@
 {% extends "layout.html" %} {% block content %}
 <br />
-<h3>{{ chapter.title }} <span id="manga-title">{{ manga.title }}</span></h3>
+<h3>{{ chapter.title }} <a id="manga-title" href="/manga/{{ manga.id }}">{{ manga.title }}</a></h3>
 <br />
 
 <!-- select option for chapters -->
@@ -123,9 +123,9 @@
   document.title = "{{ manga.title }} - {{ chapter.title }}";
 
   // on click manga-title
-  $("#manga-title").on("click", function () {
-    window.location.href = "/manga/" + "{{ manga.id }}";
-  });
+  // $("#manga-title").on("click", function () {
+  //   window.location.href = "/manga/" + "{{ manga.id }}";
+  // });
 
   const imgs = document.querySelectorAll("img");
 
@@ -136,16 +136,41 @@
       .join("-");
   }
 
+  const referer = "{{ manga.headers['Referer'] }}";
+
+
+
   imgs.forEach(async (img) => {
     const url = img.alt;
 
     // /api/img_url/<url>
-    fetch(`/api/img_url/${url_encode(url)}`)
-      .then((res) => res.blob())
-      .then((data) => {
-        const url = URL.createObjectURL(data);
-        img.src = url;
-      });
+    // fetch(`/api/img_url/${url_encode(url)}`)
+    //   .then((res) => res.blob())
+    //   .then((data) => {
+    //     const url = URL.createObjectURL(data);
+    //     img.src = url;
+    //   });
+
+    // post 
+    try {
+      const res = await fetch("/api/img_url", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ url: url, referer: referer }),
+    });
+    
+    const data = await res.blob();
+    
+    const url2 = URL.createObjectURL(data);
+    img.src = url2;
+    }
+    catch (err) {
+      img.src = "/public/error.png";
+    }
+    
+
   });
 
   $("#chapters").change(function () {

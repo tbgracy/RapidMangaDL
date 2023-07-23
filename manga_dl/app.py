@@ -126,7 +126,7 @@ def search():
     except Exception as e:
         suc = False
         error = "Unknown error"
-        logger.error(f"Error getting search results: {e}", exc_info=True)
+        logger.error(f"Error getting search results: {e}")
 
     data = {
         "success": suc,
@@ -201,7 +201,6 @@ def manga_download_progress():
 @app.route("/api/manga/imgs", methods=["POST"])
 def manga_chapter_img():
     data = request.get_json()
-
     manga_id = data["manga_id"]
     chapter_id = data["chapter_id"]
 
@@ -216,6 +215,7 @@ def manga_chapter_img():
         if c.eqal_id(chapter_id):
             chapter = c
             break
+        
     if not chapter:
         sdata["success"] = False
         sdata["message"] = "Chapter not found"
@@ -237,7 +237,20 @@ def manga_chapter_img():
 def img_url(url):
     url = url_decode(url)
     parse = urlparse(url)
-    headers["referer"] = f"{parse.scheme}://{parse.netloc}"
+    headers["Referer"] = f"{parse.scheme}://{parse.netloc}"
+
+    urlpath = Downloader.download_one(url, headers=headers, download_dir=temp_dir)
+
+    with open(urlpath.filepath, "rb") as f:
+        return f.read(), 200, {"Content-Type": "image/jpeg"}
+
+
+@app.route("/api/img_url", methods=["POST"])
+def img_url_post():
+    data = request.get_json()
+    url = data["url"]
+    referer = data["referer"]
+    headers["Referer"] = referer
 
     urlpath = Downloader.download_one(url, headers=headers, download_dir=temp_dir)
 
