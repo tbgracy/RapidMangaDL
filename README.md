@@ -3,10 +3,11 @@
 RapidMangaDL is a Python package that allows you to swiftly download manga from various sources. It offers multiple ways to interact with the application, including a Command Line Interface (CLI) and an Interactive CLI with a text-based prompt. Additionally, it comes with a web-based GUI to provide a user-friendly experience.
 [Suppoted Sources](/sources.md)
 
-
 ## Installation
+
 - Install [Python](https://www.python.org/downloads/) (3.6 or higher)
 - Go to terminal and run the following command
+
 ```bash
 pip install RapidMangaDL
 ```
@@ -133,13 +134,13 @@ Selecting chapters
 
 ```python
 
+manga.select_chapters("last 10")
+# or
 manga.select_chapters("1-10")
 # or
 manga.select_chapters("1,2,3,4,5,6,7,8,9,10")
 # or
 manga.select_chapters("1-10, 20-30, 40, 50, 60-70")
-# or
-managa.select_chapters("Chapter 1, Chapter 2")
 # or
 managa.select_chapters("https://manganato.com/manga-az963307/chapter-1-https://manganato.com/manga-az963307/chapter-2")
 
@@ -161,7 +162,7 @@ manga.create_epub(quality=70) # Default is 85(unchangable)
 manga.create_epub(path="C:/Users/username/Desktop")
 ```
 
-Luanching the server
+Launching the server
 
 ```python
 from manga_dl import app
@@ -171,6 +172,6 @@ app.run()
 app.run(host="localhost", port=80) # app is a Flask app
 ```
 
-
 # Contributing
-See [CONTRIBUTING.md](CONTRIBUTING.md)
+
+See [CONTRIBUTING.md](https://github.com/Auto-Life/RapidMangaDL/blob/main/CONTRIBUTING.md)
