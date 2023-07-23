@@ -1,7 +1,7 @@
 # RapidMangaDL (Manga Downloader)
 
 RapidMangaDL is a Python package that allows you to swiftly download manga from various sources. It offers multiple ways to interact with the application, including a Command Line Interface (CLI) and an Interactive CLI with a text-based prompt. Additionally, it comes with a web-based GUI to provide a user-friendly experience.
-[Suppoted Sources](/sources.md)
+[Suppoted Sources](https://github.com/Auto-Life/RapidMangaDL/blob/main/sources.md)
 
 ## Installation
 
