@@ -127,8 +127,8 @@ You can continue contributing to the repository by adding more sources or by imp
 
 You can find examples of manga sources in the manga_dl/manga_sources folder. You can use these examples as a reference when implementing your own source.
 
-- [MangaNato](https://github.com/Auto-Life/RapidMangaDL/blob/main/manga_dl/manga_sources/source1.py)
-- [Bato](https://github.com/Auto-Life/RapidMangaDL/blob/main/manga_dl/manga_sources/source1.py)
-- [ONEkissmanga](https://github.com/Auto-Life/RapidMangaDL/blob/main/manga_dl/manga_sources/source1.py)
+- [MangaNato](https://github.com/Auto-Life/RapidMangaDL/blob/main/manga_dl/manga_sources/source1.py#L23)
+- [Bato](https://github.com/Auto-Life/RapidMangaDL/blob/main/manga_dl/manga_sources/source1.py#L201)
+- [ONEkissmanga](https://github.com/Auto-Life/RapidMangaDL/blob/main/manga_dl/manga_sources/source1.py#322)
 
 
